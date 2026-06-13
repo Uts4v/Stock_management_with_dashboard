@@ -7,14 +7,32 @@ const API = {
     baseUrl: '/api',
     
     /**
+     * Get CSRF token from cookie
+     */
+    getCsrfToken() {
+        const name = 'csrftoken=';
+        const decodedCookie = decodeURIComponent(document.cookie);
+        const ca = decodedCookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) === ' ') c = c.substring(1);
+            if (c.indexOf(name) === 0) return c.substring(name.length, c.length);
+        }
+        return '';
+    },
+    
+    /**
      * Generic fetch wrapper with error handling
      */
     async request(endpoint, options = {}) {
         const url = `${this.baseUrl}${endpoint}`;
+        const csrfToken = this.getCsrfToken();
         const defaultOptions = {
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
             },
+            credentials: 'include',
         };
         
         const config = { ...defaultOptions, ...options };
