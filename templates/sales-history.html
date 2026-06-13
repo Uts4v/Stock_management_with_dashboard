@@ -1,0 +1,683 @@
+{% extends 'base.html' %}
+
+{% block title %}Sales History - Stock Management{% endblock %}
+
+{% block content %}
+<!-- Mobile Search Bar -->
+<div class="mobile-search">
+    <input type="date" id="mobileStartDate" placeholder="Start Date">
+    <input type="date" id="mobileEndDate" placeholder="End Date">
+    <select id="mobileTypeFilter">
+        <option value="">All Types</option>
+        <option value="SALE">Sales</option>
+        <option value="RESTOCK">Restocks</option>
+        <option value="ADJUSTMENT">Adjustments</option>
+    </select>
+    <button class="btn-search" onclick="applyFilters()">
+        <i class="fas fa-filter"></i>
+    </button>
+</div>
+<!-- In your navbar/header -->
+<div class="user-profile">
+    <span>👤 {{ request.user.username }}</span>
+    <a href="{% url 'logout' %}">Logout</a>
+</div>
+
+<div class="main-content">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">Sales History</h1>
+        <div class="header-actions">
+            <a href="{% url 'index' %}" class="btn">
+                <i class="fas fa-arrow-left"></i> Back to Products
+            </a>
+            <button class="btn btn-success" onclick="exportToExcel()">
+                <i class="fas fa-file-excel"></i> Export to Excel
+            </button>
+            <button class="btn btn-danger" onclick="deleteSelected()" id="deleteSelectedBtn" style="display: none;">
+                <i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)
+            </button>
+            <button class="btn btn-danger-outline" onclick="confirmClearAll()">
+                <i class="fas fa-trash-alt"></i> Clear All History
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="icon blue">
+                <i class="fas fa-receipt"></i>
+            </div>
+            <div class="info">
+                <h3 id="totalTransactions">0</h3>
+                <p>Total Transactions</p>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="icon green">
+                <i class="fas fa-boxes-stacked"></i>
+            </div>
+            <div class="info">
+                <h3 id="totalQuantitySold">0</h3>
+                <p>Items Sold</p>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="icon purple">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="info">
+                <h3 id="totalRevenue">$0.00</h3>
+                <p>Total Revenue</p>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="icon orange">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="info">
+                <h3 id="avgSaleValue">$0.00</h3>
+                <p>Avg Sale Value</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-container">
+        <div class="filter-group">
+            <label>Start Date:</label>
+            <input type="date" id="startDate" onchange="applyFilters()">
+        </div>
+        <div class="filter-group">
+            <label>End Date:</label>
+            <input type="date" id="endDate" onchange="applyFilters()">
+        </div>
+        <div class="filter-group">
+            <label>Transaction Type:</label>
+            <select id="typeFilter" onchange="applyFilters()">
+                <option value="">All Types</option>
+                <option value="SALE">Sales Only</option>
+                <option value="RESTOCK">Restocks Only</option>
+                <option value="ADJUSTMENT">Adjustments Only</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Product:</label>
+            <select id="productFilter" onchange="applyFilters()">
+                <option value="">All Products</option>
+            </select>
+        </div>
+        <button class="btn btn-secondary" onclick="clearFilters()">
+            <i class="fas fa-times"></i> Clear
+        </button>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="table-container">
+        <div class="table-header">
+            <span class="table-title">Transaction Records</span>
+            <span id="recordCount" class="record-count">0 records</span>
+        </div>
+        <div id="loadingSpinner" class="loading">
+            <div class="spinner"></div>
+        </div>
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-receipt"></i>
+            <h3>No Transactions Found</h3>
+            <p>There are no transaction records matching your filters.</p>
+        </div>
+        <table id="transactionsTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th class="checkbox-col"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                    <th>S.N</th>
+                    <th>Date & Time</th>
+                    <th>Product</th>
+                    <th>Type</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total Value</th>
+                    <th>Note</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="transactionsTableBody">
+                <!-- Transactions will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// ===== State =====
+let allTransactions = [];
+let filteredTransactions = [];
+let selectedIds = new Set();
+
+// ===== Initialize Page =====
+document.addEventListener('DOMContentLoaded', () => {
+    loadTransactions();
+    loadProductsForFilter();
+    
+    // Set default date range to last 30 days
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    document.getElementById('endDate').value = today.toISOString().split('T')[0];
+    document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+});
+
+// ===== Load Products for Filter Dropdown =====
+async function loadProductsForFilter() {
+    try {
+        const response = await fetch('/api/products/');
+        const data = await response.json();
+        
+        const select = document.getElementById('productFilter');
+        data.results?.forEach(product => {
+            const option = document.createElement('option');
+            option.value = product.id;
+            option.textContent = product.name;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading products:', error);
+    }
+}
+
+// ===== Load Transactions =====
+async function loadTransactions() {
+    const spinner = document.getElementById('loadingSpinner');
+    const emptyState = document.getElementById('emptyState');
+    const table = document.getElementById('transactionsTable');
+    
+    spinner.style.display = 'flex';
+    emptyState.style.display = 'none';
+    table.style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/transactions/');
+        const data = await response.json();
+        
+        allTransactions = data;
+        filteredTransactions = data;
+        
+        // Load summary
+        await loadSummary();
+        
+        // Apply filters if any
+        applyFilters();
+        
+    } catch (error) {
+        console.error('Error loading transactions:', error);
+        spinner.style.display = 'none';
+        emptyState.style.display = 'flex';
+        emptyState.querySelector('h3').textContent = 'Error Loading Data';
+        emptyState.querySelector('p').textContent = 'Failed to load transaction records. Please try again.';
+    }
+}
+
+// ===== Load Summary Statistics =====
+async function loadSummary() {
+    try {
+        const params = new URLSearchParams();
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        
+        const response = await fetch(`/api/transactions/summary/?${params}`);
+        const data = await response.json();
+        
+        document.getElementById('totalTransactions').textContent = data.total_transactions || 0;
+        document.getElementById('totalQuantitySold').textContent = data.total_quantity_sold || 0;
+        document.getElementById('totalRevenue').textContent = `$${(data.total_revenue || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('avgSaleValue').textContent = `$${(data.average_sale_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    } catch (error) {
+        console.error('Error loading summary:', error);
+    }
+}
+
+// ===== Apply Filters =====
+function applyFilters() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const typeFilter = document.getElementById('typeFilter').value;
+    const productFilter = document.getElementById('productFilter').value;
+    
+    filteredTransactions = allTransactions.filter(t => {
+        // Date filter
+        if (startDate) {
+            const transDate = new Date(t.created_at).toISOString().split('T')[0];
+            if (transDate < startDate) return false;
+        }
+        if (endDate) {
+            const transDate = new Date(t.created_at).toISOString().split('T')[0];
+            if (transDate > endDate) return false;
+        }
+        
+        // Type filter
+        if (typeFilter && t.transaction_type !== typeFilter) return false;
+        
+        // Product filter
+        if (productFilter && t.product_id != productFilter) return false;
+        
+        return true;
+    });
+    
+    renderTransactions();
+    loadSummary(); // Reload summary with new filters
+}
+
+// ===== Clear Filters =====
+function clearFilters() {
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+    document.getElementById('typeFilter').value = '';
+    document.getElementById('productFilter').value = '';
+    
+    // Reset to last 30 days
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    document.getElementById('endDate').value = today.toISOString().split('T')[0];
+    document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+    
+    applyFilters();
+}
+
+// ===== Render Transactions Table =====
+function renderTransactions() {
+    const spinner = document.getElementById('loadingSpinner');
+    const emptyState = document.getElementById('emptyState');
+    const table = document.getElementById('transactionsTable');
+    const tbody = document.getElementById('transactionsTableBody');
+    const recordCount = document.getElementById('recordCount');
+    const deleteBtn = document.getElementById('deleteSelectedBtn');
+    
+    spinner.style.display = 'none';
+    
+    if (filteredTransactions.length === 0) {
+        emptyState.style.display = 'flex';
+        table.style.display = 'none';
+        recordCount.textContent = '0 records';
+        deleteBtn.style.display = 'none';
+        return;
+    }
+    
+    emptyState.style.display = 'none';
+    table.style.display = 'table';
+    recordCount.textContent = `${filteredTransactions.length} records`;
+    
+    // Update select all checkbox
+    document.getElementById('selectAll').checked = filteredTransactions.length > 0 && filteredTransactions.every(t => selectedIds.has(t.id));
+    
+    tbody.innerHTML = filteredTransactions.map((t, index) => {
+        const date = new Date(t.created_at);
+        const dateStr = date.toLocaleDateString('en-US', { 
+            year: 'numeric', month: 'short', day: 'numeric' 
+        });
+        const timeStr = date.toLocaleTimeString('en-US', { 
+            hour: '2-digit', minute: '2-digit' 
+        });
+        
+        const typeClass = {
+            'SALE': 'type-sale',
+            'RESTOCK': 'type-restock',
+            'ADJUSTMENT': 'type-adjustment'
+        }[t.transaction_type] || '';
+        
+        const typeIcon = {
+            'SALE': 'fa-arrow-up-from-bracket',
+            'RESTOCK': 'fa-arrow-down-to-bracket',
+            'ADJUSTMENT': 'fa-sliders'
+        }[t.transaction_type] || 'fa-exchange-alt';
+        
+        const typeLabel = {
+            'SALE': 'Sale',
+            'RESTOCK': 'Restock',
+            'ADJUSTMENT': 'Adjustment'
+        }[t.transaction_type] || t.transaction_type;
+        
+        const totalValue = t.revenue !== null ? t.revenue : (t.transaction_type === 'RESTOCK' ? t.quantity * t.unit_price : '-');
+        const isSelected = selectedIds.has(t.id);
+        
+        return `
+            <tr class="${isSelected ? 'selected-row' : ''}">
+                <td class="checkbox-col">
+                    <input type="checkbox" class="row-checkbox" value="${t.id}" 
+                           ${isSelected ? 'checked' : ''} onchange="toggleSelect('${t.id}')">
+                </td>
+                <td>${index + 1}</td>
+                <td>
+                    <div class="datetime-cell">
+                        <span class="date">${dateStr}</span>
+                        <span class="time">${timeStr}</span>
+                    </div>
+                </td>
+                <td><strong>${t.product_name}</strong></td>
+                <td>
+                    <span class="type-badge ${typeClass}">
+                        <i class="fas ${typeIcon}"></i>
+                        ${typeLabel}
+                    </span>
+                </td>
+                <td>${t.quantity}</td>
+                <td>$${t.unit_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td class="${t.revenue !== null ? 'revenue-cell' : ''}">
+                    ${typeof totalValue === 'number' ? '$' + totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : totalValue}
+                </td>
+                <td>${t.note || '-'}</td>
+                <td>
+                    <button class="btn-icon btn-delete" onclick="deleteTransaction(${t.id})" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    updateDeleteButton();
+}
+
+// ===== Selection Functions =====
+function toggleSelect(id) {
+    if (selectedIds.has(id)) {
+        selectedIds.delete(id);
+    } else {
+        selectedIds.add(id);
+    }
+    renderTransactions();
+}
+
+function toggleSelectAll() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    if (selectAllCheckbox.checked) {
+        filteredTransactions.forEach(t => selectedIds.add(t.id));
+    } else {
+        selectedIds.clear();
+    }
+    renderTransactions();
+}
+
+function updateDeleteButton() {
+    const deleteBtn = document.getElementById('deleteSelectedBtn');
+    const selectedCount = document.getElementById('selectedCount');
+    
+    if (selectedIds.size > 0) {
+        deleteBtn.style.display = 'inline-flex';
+        selectedCount.textContent = selectedIds.size;
+    } else {
+        deleteBtn.style.display = 'none';
+    }
+}
+
+// ===== Delete Functions =====
+async function deleteTransaction(id) {
+    if (!confirm('Delete this transaction?')) return;
+    
+    try {
+        const response = await fetch('/api/transactions/delete/', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: [id] })
+        });
+        
+        if (response.ok) {
+            showToast('Transaction deleted');
+            selectedIds.delete(id);
+            loadTransactions();
+        } else {
+            alert('Failed to delete transaction');
+        }
+    } catch (error) {
+        console.error('Delete error:', error);
+        alert('Failed to delete transaction');
+    }
+}
+
+async function deleteSelected() {
+    if (selectedIds.size === 0) return;
+    
+    if (!confirm(`Delete ${selectedIds.size} selected transactions?`)) return;
+    
+    try {
+        const response = await fetch('/api/transactions/delete/', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: Array.from(selectedIds) })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            showToast(data.message);
+            selectedIds.clear();
+            loadTransactions();
+        } else {
+            alert('Failed to delete transactions');
+        }
+    } catch (error) {
+        console.error('Delete error:', error);
+        alert('Failed to delete transactions');
+    }
+}
+
+async function confirmClearAll() {
+    const count = filteredTransactions.length || allTransactions.length;
+    if (count === 0) {
+        alert('No transactions to delete');
+        return;
+    }
+    
+    if (!confirm(`⚠️ WARNING: This will permanently delete ALL ${count} transaction records!\n\nThis action cannot be undone. Are you sure?`)) return;
+    
+    if (!confirm(`Are you REALLY sure? Type "DELETE" to confirm.`)) return;
+    
+    try {
+        const response = await fetch('/api/transactions/delete/', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clear_all: true })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            showToast(data.message);
+            selectedIds.clear();
+            loadTransactions();
+        } else {
+            alert('Failed to clear history');
+        }
+    } catch (error) {
+        console.error('Clear all error:', error);
+        alert('Failed to clear history');
+    }
+}
+
+// ===== Toast Notification =====
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast show';
+    setTimeout(() => { toast.className = 'toast'; }, 3000);
+}
+
+// ===== Export to Excel =====
+async function exportToExcel() {
+    if (!window.confirm(`Export ${filteredTransactions.length} transactions to Excel?`)) return;
+    
+    try {
+        const response = await fetch('/api/transactions/export/excel/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transactions: filteredTransactions })
+        });
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Sales_History_${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        } else {
+            alert('Export failed. Please try again.');
+        }
+    } catch (error) {
+        console.error('Export error:', error);
+        alert('Export failed. Please try again.');
+    }
+}
+</script>
+
+<style>
+.type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.type-sale {
+    background: #d4edda;
+    color: #155724;
+}
+
+.type-restock {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.type-adjustment {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.datetime-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.datetime-cell .date {
+    font-weight: 500;
+}
+
+.datetime-cell .time {
+    font-size: 12px;
+    color: #666;
+}
+
+.revenue-cell {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.record-count {
+    font-size: 14px;
+    color: #666;
+    font-weight: normal;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.filters-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    align-items: flex-end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filter-group label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #666;
+}
+
+.filter-group input,
+.filter-group select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    min-width: 150px;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+}
+
+.btn-success:hover {
+    background: #218838;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+@media (max-width: 768px) {
+    .filters-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filter-group input,
+    .filter-group select {
+        width: 100%;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .header-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}

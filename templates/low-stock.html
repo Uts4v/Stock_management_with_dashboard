@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+
+{% block title %}Low Stock Alerts - Stock Management{% endblock %}
+
+{% block content %}
+<!-- Mobile Search Bar -->
+<div class="mobile-search">
+    <input type="text" id="mobileSearchInput" placeholder="Search products...">
+    <select id="mobileCategoryFilter">
+        <option value="">All</option>
+    </select>
+    <button class="btn-search" onclick="mobileSearch()">
+        <i class="fas fa-search"></i>
+    </button>
+</div>
+<!-- In your navbar/header -->
+<div class="user-profile">
+    <span>👤 {{ request.user.username }}</span>
+    <a href="{% url 'logout' %}">Logout</a>
+</div>
+
+<div class="main-content">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">Low Stock Alerts</h1>
+        <a href="{% url 'index' %}" class="btn">
+            <i class="fas fa-arrow-left"></i> Back to Products
+        </a>
+    </div>
+
+    <!-- Summary Card -->
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="icon red">
+                <i class="fas fa-triangle-exclamation"></i>
+            </div>
+            <div class="info">
+                <h3 id="lowStockCount">0</h3>
+                <p>Products Below Minimum Stock</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock List -->
+    <div class="table-container">
+        <div class="table-header">
+            <span class="table-title">Products Requiring Attention</span>
+        </div>
+        <div id="loadingSpinner" class="loading">
+            <div class="spinner"></div>
+        </div>
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-check-circle"></i>
+            <h3>All Stock Levels OK</h3>
+            <p>No products are currently below their minimum stock level.</p>
+        </div>
+        <div id="lowStockList" class="low-stock-list" style="display: none; padding: 16px;">
+            <!-- Low stock items will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Low Stock Table -->
+    <div class="table-container" style="margin-top: 24px;">
+        <div class="table-header">
+            <span class="table-title">Detailed View</span>
+        </div>
+        <table id="lowStockTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>S.N</th>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th>Barcode No</th>
+                    <th>Price</th>
+                    <th>Current Stock</th>
+                    <th>Min Stock</th>
+                    <th>Shortage</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="lowStockTableBody">
+                <!-- Low stock products will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// ===== State =====
+let allProducts = [];
+
+// ===== Initialize Page =====
+document.addEventListener('DOMContentLoaded', () => {
+    loadLowStockProducts();
+});
+
+// ===== Load Low Stock Products =====
+async function loadLowStockProducts() {
+    const spinner = document.getElementById('loadingSpinner');
+    const emptyState = document.getElementById('emptyState');
+    const listContainer = document.getElementById('lowStockList');
+    const table = document.getElementById('lowStockTable');
+    
+    spinner.style.display = 'flex';
+    emptyState.style.display = 'none';
+    listContainer.style.display = 'none';
+    table.style.display = 'none';
+    
+    try {
+        // Get all products
+        const params = getQueryParams();
+        const data = await API.getProducts(params.search, params.category);
+        allProducts = data;
+        
+        // Filter low stock products
+        const lowStockProducts = data.filter(p => p.status === 'Low');
+        
+        spinner.style.display = 'none';
+        
+        if (lowStockProducts.length === 0) {
+            emptyState.style.display = 'block';
+        } else {
+            renderLowStockList(lowStockProducts);
+            renderLowStockTable(lowStockProducts);
+            document.getElementById('lowStockCount').textContent = lowStockProducts.length;
+        }
+    } catch (error) {
+        spinner.style.display = 'none';
+        showToast('Failed to load products: ' + error.message, 'error');
+    }
+}
+
+// ===== Render Low Stock List =====
+function renderLowStockList(products) {
+    const listContainer = document.getElementById('lowStockList');
+    listContainer.innerHTML = '';
+    listContainer.style.display = 'flex';
+    
+    products.forEach(product => {
+        const shortage = product.min_stock - product.stock;
+        
+        const item = document.createElement('div');
+        item.className = 'low-stock-item';
+        item.innerHTML = `
+            <div class="product-info">
+                <h4>${escapeHtml(product.name)}</h4>
+                <p>${product.category ? escapeHtml(product.category) : 'Uncategorized'} • ${product.barcode || 'No barcode'}</p>
+            </div>
+            <div class="stock-info">
+                <div class="current">${product.stock}</div>
+                <div class="min">Min: ${product.min_stock} (Need ${shortage} more)</div>
+            </div>
+            <div style="margin-left: 20px;">
+                <div class="transaction-input">
+                    <input type="number" id="restock-${product.id}" placeholder="Qty" min="1" style="width: 70px;">
+                    <button class="btn btn-success btn-sm" onclick="restockProduct(${product.id})">
+                        <i class="fas fa-plus"></i> Restock
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        listContainer.appendChild(item);
+    });
+}
+
+// ===== Render Low Stock Table =====
+function renderLowStockTable(products) {
+    const tbody = document.getElementById('lowStockTableBody');
+    const table = document.getElementById('lowStockTable');
+    
+    tbody.innerHTML = '';
+    table.style.display = 'table';
+    
+    products.forEach((product, index) => {
+        const shortage = product.min_stock - product.stock;
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td><strong>${escapeHtml(product.name)}</strong></td>
+            <td>${product.category || '-'}</td>
+            <td>${product.barcode || '-'}</td>
+            <td>${formatCurrency(product.selling_price)}</td>
+            <td class="stock-value low">${product.stock}</td>
+            <td>${product.min_stock}</td>
+            <td style="color: var(--danger-color); font-weight: 600;">-${shortage}</td>
+            <td>
+                <div class="transaction-input">
+                    <input type="number" id="table-restock-${product.id}" placeholder="Qty" min="1" style="width: 60px;">
+                    <button class="btn btn-sm btn-success" onclick="restockFromTable(${product.id})">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+// ===== Product Actions =====
+async function restockProduct(productId) {
+    const input = document.getElementById(`restock-${productId}`);
+    const quantity = parseInt(input.value);
+    
+    if (!quantity || quantity <= 0) {
+        showToast('Please enter a valid quantity', 'error');
+        return;
+    }
+    
+    try {
+        await API.restockProduct(productId, quantity);
+        showToast('Product restocked successfully!');
+        loadLowStockProducts();
+    } catch (error) {
+        showToast('Failed to restock: ' + error.message, 'error');
+    }
+}
+
+async function restockFromTable(productId) {
+    const input = document.getElementById(`table-restock-${productId}`);
+    const quantity = parseInt(input.value);
+    
+    if (!quantity || quantity <= 0) {
+        showToast('Please enter a valid quantity', 'error');
+        return;
+    }
+    
+    try {
+        await API.restockProduct(productId, quantity);
+        showToast('Product restocked successfully!');
+        loadLowStockProducts();
+    } catch (error) {
+        showToast('Failed to restock: ' + error.message, 'error');
+    }
+}
+
+// ===== Search Handler =====
+function handleSearch(search, category) {
+    loadLowStockProducts();
+}
+
+// ===== Mobile Search =====
+function mobileSearch() {
+    const searchInput = document.getElementById('mobileSearchInput');
+    const categoryFilter = document.getElementById('mobileCategoryFilter');
+    
+    if (searchInput && typeof performSearch === 'function') {
+        performSearch(searchInput.value, categoryFilter.value);
+    }
+}
+
+// ===== Utility Functions =====
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Make handleSearch available globally
+window.handleSearch = handleSearch;
+</script>
+{% endblock %}

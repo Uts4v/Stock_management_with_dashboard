@@ -1,0 +1,565 @@
+{% extends 'base.html' %}
+
+{% block title %}Products - Stock Management{% endblock %}
+
+{% block extra_head %}
+<!-- SheetJS Library for Excel Export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Mobile Search Bar -->
+<div class="mobile-search">
+    <input type="text" id="mobileSearchInput" placeholder="Search products...">
+    <select id="mobileCategoryFilter">
+        <option value="">All</option>
+    </select>
+    <button class="btn-search" onclick="mobileSearch()">
+        <i class="fas fa-search"></i>
+    </button>
+</div>
+
+<div class="main-content">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">Products</h1>
+        <div class="header-actions">
+            <button class="btn btn-success" onclick="downloadExcel()">
+                <i class="fas fa-file-excel"></i> Download Excel
+            </button>
+            <button class="btn btn-info" onclick="openGoogleSheetsModal()">
+                <i class="fas fa-cloud"></i> Google Sheets
+            </button>
+            <button class="btn btn-primary" onclick="toggleAddForm()">
+                <i class="fas fa-plus"></i> Add Product
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="icon blue">
+                <i class="fas fa-boxes-stacked"></i>
+            </div>
+            <div class="info">
+                <h3 id="totalProducts">0</h3>
+                <p>Total Products</p>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="icon green">
+                <i class="fas fa-cubes"></i>
+            </div>
+            <div class="info">
+                <h3 id="totalUnits">0</h3>
+                <p>Total Units</p>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="icon orange">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="info">
+                <h3 id="totalValue">NPR 0</h3>
+                <p>Inventory Value</p>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="icon red">
+                <i class="fas fa-triangle-exclamation"></i>
+            </div>
+            <div class="info">
+                <h3 id="lowStockCount">0</h3>
+                <p>Low Stock Items</p>
+            </div>
+        </div>
+    </div>
+    <!-- In your navbar/header -->
+<div class="user-profile">
+    <span>👤 {{ request.user.username }}</span>
+    <a href="{% url 'logout' %}">Logout</a>
+</div>
+
+    <!-- Add Product Form (Hidden by default) -->
+    <div id="addProductForm" class="add-product-form" style="display: none;">
+        <h3 style="margin-bottom: 16px;">Add New Product</h3>
+        <form id="productForm" onsubmit="handleAddProduct(event)">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="productName">Product Name *</label>
+                    <input type="text" id="productName" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="productCategory">Category</label>
+                    <input type="text" id="productCategory" name="category" list="categoryList">
+                    <datalist id="categoryList"></datalist>
+                </div>
+                <div class="form-group">
+                    <label for="productBarcode">Barcode</label>
+                    <input type="text" id="productBarcode" name="barcode">
+                </div>
+                <div class="form-group">
+                    <label for="productStock">Initial Stock</label>
+                    <input type="number" id="productStock" name="stock" min="0" value="0">
+                </div>
+                <div class="form-group">
+                    <label for="productMinStock">Minimum Stock Level</label>
+                    <input type="number" id="productMinStock" name="min_stock" min="0" value="10">
+                </div>
+                <div class="form-group">
+                    <label for="productCostPrice">Cost Price *</label>
+                    <input type="number" id="productCostPrice" name="cost_price" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="productSellingPrice">Selling Price *</label>
+                    <input type="number" id="productSellingPrice" name="selling_price" min="0" step="0.01" required>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn" onclick="toggleAddForm()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Product</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Products Table -->
+    <div class="table-container">
+        <div class="table-header">
+            <span class="table-title">Product List</span>
+            <span id="resultCount" style="color: var(--text-secondary); font-size: 0.9rem;"></span>
+        </div>
+        <div id="loadingSpinner" class="loading">
+            <div class="spinner"></div>
+        </div>
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-boxes-stacked"></i>
+            <h3>No Products Found</h3>
+            <p>Add your first product or adjust your search filters.</p>
+            <button class="btn btn-primary" onclick="toggleAddForm()">
+                <i class="fas fa-plus"></i> Add Product
+            </button>
+        </div>
+        <table id="productsTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>S.N</th>
+                    <th>Product Name</th>
+                    <th>Barcode No</th>
+                    <th>Price</th>
+                    <th>Actual Stock</th>
+                    <th>Today's Stock</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="productsBody">
+                <!-- Products will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// ===== State =====
+let products = [];
+let editingRow = null;
+
+// ===== Initialize Page =====
+document.addEventListener('DOMContentLoaded', () => {
+    loadProducts();
+    loadCategoriesForDatalist();
+});
+
+// ===== Load Products =====
+async function loadProducts() {
+    const spinner = document.getElementById('loadingSpinner');
+    const emptyState = document.getElementById('emptyState');
+    const table = document.getElementById('productsTable');
+    
+    spinner.style.display = 'flex';
+    emptyState.style.display = 'none';
+    table.style.display = 'none';
+    
+    try {
+        const params = getQueryParams();
+        const data = await API.getProducts(params.search, params.category);
+        products = data;
+        
+        renderProducts(data);
+        updateSummaryCards(data);
+        
+        spinner.style.display = 'none';
+        
+        if (data.length === 0) {
+            emptyState.style.display = 'block';
+        } else {
+            table.style.display = 'table';
+        }
+    } catch (error) {
+        spinner.style.display = 'none';
+        showToast('Failed to load products: ' + error.message, 'error');
+    }
+}
+
+// ===== Render Products Table =====
+function renderProducts(productsList) {
+    const tbody = document.getElementById('productsBody');
+    const resultCount = document.getElementById('resultCount');
+    
+    tbody.innerHTML = '';
+    resultCount.textContent = `Showing ${productsList.length} product(s)`;
+    
+    productsList.forEach((product, index) => {
+        const stockClass = product.status === 'Low' ? 'low' : '';
+        const rowClass = product.status === 'Low' ? 'low-stock' : '';
+        
+        const row = document.createElement('tr');
+        row.className = rowClass;
+        row.id = `product-${product.id}`;
+        
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td><strong>${escapeHtml(product.name)}</strong></td>
+            <td>${product.barcode || '-'}</td>
+            <td>${formatCurrency(product.selling_price)}</td>
+            <td class="stock-value ${stockClass}">${product.stock}</td>
+            <td>${product.todays_stock !== undefined ? product.todays_stock : product.stock}</td>
+            <td>${getStatusBadge(product.status)}</td>
+            <td>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                    <div class="inline-edit">
+                        <input type="number" id="minstock-${product.id}" value="${product.min_stock}" min="0" style="width: 60px;">
+                        <button class="btn btn-sm btn-primary" onclick="updateMinStock(${product.id})" title="Update Min Stock">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+                    <div class="transaction-input">
+                        <input type="number" id="sell-qty-${product.id}" placeholder="Qty" min="1" style="width: 50px;">
+                        <button class="btn btn-sm btn-success" onclick="sellProduct(${product.id})" title="Sell">
+                            <i class="fas fa-shopping-cart"></i>
+                        </button>
+                    </div>
+                    <div class="transaction-input">
+                        <input type="number" id="restock-qty-${product.id}" placeholder="Qty" min="1" style="width: 50px;">
+                        <button class="btn btn-sm btn-primary" onclick="restockProduct(${product.id})" title="Restock">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-sm btn-icon" onclick="deleteProduct(${product.id})" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+// ===== Update Summary Cards =====
+function updateSummaryCards(productsList) {
+    const totalProducts = productsList.length;
+    const totalUnits = productsList.reduce((sum, p) => sum + p.stock, 0);
+    const totalValue = productsList.reduce((sum, p) => sum + (p.stock * p.cost_price), 0);
+    const lowStockCount = productsList.filter(p => p.status === 'Low').length;
+    
+    document.getElementById('totalProducts').textContent = formatNumber(totalProducts);
+    document.getElementById('totalUnits').textContent = formatNumber(totalUnits);
+    document.getElementById('totalValue').textContent = formatCurrency(totalValue);
+    document.getElementById('lowStockCount').textContent = lowStockCount;
+}
+
+// ===== Add Product Form =====
+function toggleAddForm() {
+    const form = document.getElementById('addProductForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+async function handleAddProduct(event) {
+    event.preventDefault();
+    
+    const form = document.getElementById('productForm');
+    const formData = new FormData(form);
+    
+    const productData = {
+        name: formData.get('name'),
+        category: formData.get('category') || '',
+        barcode: formData.get('barcode') || '',
+        stock: parseInt(formData.get('stock')) || 0,
+        min_stock: parseInt(formData.get('min_stock')) || 10,
+        cost_price: parseFloat(formData.get('cost_price')),
+        selling_price: parseFloat(formData.get('selling_price'))
+    };
+    
+    try {
+        await API.createProduct(productData);
+        showToast('Product added successfully!');
+        form.reset();
+        toggleAddForm();
+        loadProducts();
+        loadCategoriesForDatalist();
+    } catch (error) {
+        showToast('Failed to add product: ' + error.message, 'error');
+    }
+}
+
+async function loadCategoriesForDatalist() {
+    try {
+        const categories = await API.getCategories();
+        const datalist = document.getElementById('categoryList');
+        datalist.innerHTML = '';
+        categories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat;
+            datalist.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Failed to load categories:', error);
+    }
+}
+
+// ===== Product Actions =====
+async function updateMinStock(productId) {
+    const input = document.getElementById(`minstock-${productId}`);
+    const newMinStock = parseInt(input.value);
+    
+    if (isNaN(newMinStock) || newMinStock < 0) {
+        showToast('Invalid minimum stock value', 'error');
+        return;
+    }
+    
+    try {
+        const product = products.find(p => p.id === productId);
+        await API.updateProduct(productId, {
+            ...product,
+            min_stock: newMinStock
+        });
+        showToast('Minimum stock updated!');
+        loadProducts();
+    } catch (error) {
+        showToast('Failed to update: ' + error.message, 'error');
+    }
+}
+
+async function sellProduct(productId) {
+    const input = document.getElementById(`sell-qty-${productId}`);
+    const quantity = parseInt(input.value);
+    
+    if (!quantity || quantity <= 0) {
+        showToast('Please enter a valid quantity', 'error');
+        return;
+    }
+    
+    try {
+        await API.sellProduct(productId, quantity);
+        showToast('Sale recorded successfully!');
+        input.value = '';
+        loadProducts();
+    } catch (error) {
+        showToast('Failed to record sale: ' + error.message, 'error');
+    }
+}
+
+async function restockProduct(productId) {
+    const input = document.getElementById(`restock-qty-${productId}`);
+    const quantity = parseInt(input.value);
+    
+    if (!quantity || quantity <= 0) {
+        showToast('Please enter a valid quantity', 'error');
+        return;
+    }
+    
+    try {
+        await API.restockProduct(productId, quantity);
+        showToast('Product restocked successfully!');
+        input.value = '';
+        loadProducts();
+    } catch (error) {
+        showToast('Failed to restock: ' + error.message, 'error');
+    }
+}
+
+async function deleteProduct(productId) {
+    if (!confirm('Are you sure you want to delete this product?')) {
+        return;
+    }
+    
+    try {
+        await API.deleteProduct(productId);
+        showToast('Product deleted successfully!');
+        loadProducts();
+    } catch (error) {
+        showToast('Failed to delete product: ' + error.message, 'error');
+    }
+}
+
+// ===== Search Handler =====
+function handleSearch(search, category) {
+    loadProducts();
+}
+
+// ===== Mobile Search =====
+function mobileSearch() {
+    const searchInput = document.getElementById('mobileSearchInput');
+    const categoryFilter = document.getElementById('mobileCategoryFilter');
+    
+    if (searchInput && typeof performSearch === 'function') {
+        performSearch(searchInput.value, categoryFilter.value);
+    }
+}
+
+// ===== Utility Functions =====
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ===== Excel Export (Server-side with openpyxl) =====
+async function downloadExcel() {
+    try {
+        showToast('Downloading Excel file...', 'info');
+        await API.exportToExcel();
+        showToast('Excel file downloaded!', 'success');
+    } catch (error) {
+        showToast('Failed to download: ' + error.message, 'error');
+    }
+}
+
+// ===== Google Sheets Integration =====
+let googleSheetsConfig = {
+    sheetId: '',
+    apiKey: ''
+};
+
+function openGoogleSheetsModal() {
+    // Load saved config
+    const saved = localStorage.getItem('googleSheetsConfig');
+    if (saved) {
+        googleSheetsConfig = JSON.parse(saved);
+    }
+    
+    // Create modal if not exists
+    let modal = document.getElementById('googleSheetsModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'googleSheetsModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Google Sheets Integration</h3>
+                    <span class="close" onclick="closeGoogleSheetsModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p style="margin-bottom: 16px; color: var(--text-secondary); font-size: 0.9rem;">
+                        Sync your inventory data with Google Sheets. You can export to or import from Google Sheets.
+                    </p>
+                    <div class="form-group">
+                        <label for="sheetId">Google Sheet ID</label>
+                        <input type="text" id="sheetId" placeholder="e.g., 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms">
+                        <small style="color: var(--text-secondary);">Find this in your Google Sheet URL</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="apiKey">Google API Key</label>
+                        <input type="password" id="apiKey" placeholder="Enter your API Key">
+                        <small style="color: var(--text-secondary);">Required for Sheets API access</small>
+                    </div>
+                    <div style="margin-top: 20px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                        <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">
+                            <strong>How to set up:</strong><br>
+                            1. Create a Google Sheet with columns: Name, Barcode, Category, Stock, Min Stock, Cost Price, Selling Price<br>
+                            2. Enable Google Sheets API in Google Cloud Console<br>
+                            3. Create an API Key with Sheets API enabled<br>
+                            4. Share your sheet with the API key email (or make it public)<br>
+                            5. Copy the Sheet ID from the URL
+                        </p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" onclick="closeGoogleSheetsModal()">Cancel</button>
+                    <button class="btn btn-secondary" onclick="importFromGoogleSheets()">
+                        <i class="fas fa-upload"></i> Import
+                    </button>
+                    <button class="btn btn-primary" onclick="exportToGoogleSheets()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    // Populate fields
+    document.getElementById('sheetId').value = googleSheetsConfig.sheetId || '';
+    document.getElementById('apiKey').value = googleSheetsConfig.apiKey || '';
+    
+    modal.style.display = 'block';
+}
+
+function closeGoogleSheetsModal() {
+    const modal = document.getElementById('googleSheetsModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function saveGoogleSheetsConfig() {
+    const sheetId = document.getElementById('sheetId').value.trim();
+    const apiKey = document.getElementById('apiKey').value.trim();
+    
+    if (!sheetId || !apiKey) {
+        showToast('Please enter both Sheet ID and API Key', 'error');
+        return false;
+    }
+    
+    googleSheetsConfig = { sheetId, apiKey };
+    localStorage.setItem('googleSheetsConfig', JSON.stringify(googleSheetsConfig));
+    return true;
+}
+
+async function exportToGoogleSheets() {
+    if (!saveGoogleSheetsConfig()) return;
+    
+    try {
+        showToast('Syncing to Google Sheets...', 'info');
+        
+        const result = await API.syncToGoogleSheets(
+            googleSheetsConfig.sheetId,
+            googleSheetsConfig.apiKey
+        );
+        
+        showToast(result.message || 'Synced successfully!', 'success');
+        closeGoogleSheetsModal();
+    } catch (error) {
+        showToast('Export failed: ' + error.message, 'error');
+    }
+}
+
+async function importFromGoogleSheets() {
+    if (!saveGoogleSheetsConfig()) return;
+    
+    try {
+        showToast('Importing from Google Sheets...', 'info');
+        
+        const result = await API.importFromGoogleSheets(
+            googleSheetsConfig.sheetId,
+            googleSheetsConfig.apiKey
+        );
+        
+        showToast(result.message || 'Imported successfully!', 'success');
+        closeGoogleSheetsModal();
+        loadProducts(); // Refresh the product list
+    } catch (error) {
+        showToast('Import failed: ' + error.message, 'error');
+    }
+}
+
+// Make functions globally available
+window.handleSearch = handleSearch;
+window.downloadExcel = downloadExcel;
+window.openGoogleSheetsModal = openGoogleSheetsModal;
+window.closeGoogleSheetsModal = closeGoogleSheetsModal;
+window.exportToGoogleSheets = exportToGoogleSheets;
+window.importFromGoogleSheets = importFromGoogleSheets;
+</script>
+{% endblock %}
