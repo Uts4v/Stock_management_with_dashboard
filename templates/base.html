@@ -11,18 +11,16 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Top Navigation Bar with Global Search -->
     <nav class="navbar">
         <div class="nav-brand">
             <i class="fas fa-boxes"></i>
             <span>Stock Manager</span>
         </div>
         <div class="nav-search">
-            <input type="text" id="searchInput" placeholder="Search products..." 
+            <input type="text" id="searchInput" placeholder="Search products..."
                    value="{{ search|default:'' }}">
             <select id="categoryFilter">
                 <option value="">All Categories</option>
-                <!-- Categories will be populated dynamically -->
             </select>
             <button id="searchBtn" class="btn-search">
                 <i class="fas fa-search"></i>
@@ -41,19 +39,62 @@
                 <i class="fas fa-exclamation-triangle"></i>
                 <span>Low Stock</span>
             </a>
+
+            <!-- User profile dropdown -->
+            {% if request.user.is_authenticated %}
+            <div class="nav-user">
+                <div class="nav-user-toggle" onclick="toggleUserMenu()">
+                    <div class="user-avatar">
+                        {{ request.user.username|first|upper }}
+                    </div>
+                    <span class="user-name">{{ request.user.username }}</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="user-dropdown-header">
+                        <strong>{{ request.user.username }}</strong>
+                        <small>{{ request.user.email }}</small>
+                    </div>
+                    <hr>
+                    {% if request.user.is_staff %}
+                    <a href="/admin/" class="dropdown-item">
+                        <i class="fas fa-cog"></i> Admin Panel
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'logout' %}" class="dropdown-item logout">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </nav>
 
-    <!-- Main Content -->
     <main class="main-content">
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
 
     <script src="{% static 'js/api.js' %}"></script>
     <script src="{% static 'js/app.js' %}"></script>
+
+    <script>
+        // User dropdown toggle
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const userNav = document.querySelector('.nav-user');
+            if (userNav && !userNav.contains(e.target)) {
+                document.getElementById('userDropdown').classList.remove('show');
+            }
+        });
+    </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

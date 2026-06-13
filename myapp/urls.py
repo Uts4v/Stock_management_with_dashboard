@@ -18,6 +18,7 @@ urlpatterns = [
     path('api/transactions/summary/', views.SalesSummaryView.as_view(), name='transactions-summary'),
     path('api/transactions/export/excel/', views.export_transactions_excel, name='export-transactions-excel'),
     path('api/transactions/delete/', views.delete_transactions, name='delete-transactions'),
+    path('api/supabase/example/', views.supabase_example, name='supabase-example'),
     path('api/', include(router.urls)),
     
     # Template views

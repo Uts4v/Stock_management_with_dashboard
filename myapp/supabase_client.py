@@ -1,0 +1,197 @@
+"""
+Supabase client configuration for Django.
+Handles connection to Supabase PostgreSQL database.
+"""
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SUPABASE_URL = os.environ.get('SUPABASE_URL')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
+
+
+def get_supabase_client():
+    """
+    Returns a Supabase client instance.
+    Only creates the client when called (lazy initialization).
+    """
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        raise ValueError(
+            "SUPABASE_URL and SUPABASE_KEY environment variables are not set. "
+            "Add them to your .env file or Render environment variables."
+        )
+    
+    from supabase import create_client, Client
+    client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    return client
+
+
+# ===== Product Operations =====
+
+def get_all_products():
+    """Fetch all products from Supabase."""
+    client = get_supabase_client()
+    response = client.table('myapp_product').select("*").execute()
+    return response.data
+
+
+def get_product_by_id(product_id: int):
+    """Fetch a single product by ID."""
+    client = get_supabase_client()
+    response = client.table('myapp_product').select("*").eq('id', product_id).execute()
+    return response.data[0] if response.data else None
+
+
+def create_product(data: dict):
+    """
+    Insert a new product into Supabase.
+    
+    data = {
+        'name': str,
+        'barcode': str,
+        'category': str,
+        'stock': int,
+        'min_stock': int,
+        'cost_price': float,
+        'selling_price': float,
+    }
+    """
+    client = get_supabase_client()
+    response = client.table('myapp_product').insert(data).execute()
+    return response.data
+
+
+def update_product(product_id: int, data: dict):
+    """Update an existing product by ID."""
+    client = get_supabase_client()
+    response = client.table('myapp_product').update(data).eq('id', product_id).execute()
+    return response.data
+
+
+def delete_product(product_id: int):
+    """Delete a product by ID."""
+    client = get_supabase_client()
+    response = client.table('myapp_product').delete().eq('id', product_id).execute()
+    return response.data
+
+
+def get_low_stock_products(min_stock_threshold: int = None):
+    """
+    Fetch products where stock is below min_stock.
+    If threshold provided, use that instead.
+    """
+    client = get_supabase_client()
+    if min_stock_threshold:
+        response = client.table('myapp_product').select("*").lt('stock', min_stock_threshold).execute()
+    else:
+        # stock less than min_stock column
+        response = client.table('myapp_product').select("*").execute()
+        # Filter in Python since Supabase doesn't support column-to-column comparison directly
+        products = [p for p in response.data if p['stock'] < p['min_stock']]
+        return products
+    return response.data
+
+
+# ===== Transaction Operations =====
+
+def get_all_transactions():
+    """Fetch all stock transactions with product info."""
+    client = get_supabase_client()
+    response = client.table('myapp_stocktransaction').select(
+        "*, myapp_product(name, selling_price)"
+    ).order('created_at', desc=True).execute()
+    return response.data
+
+
+def get_transactions_by_type(transaction_type: str):
+    """
+    Fetch transactions filtered by type.
+    transaction_type: 'SALE', 'RESTOCK', or 'ADJUSTMENT'
+    """
+    client = get_supabase_client()
+    response = client.table('myapp_stocktransaction').select(
+        "*, myapp_product(name, selling_price)"
+    ).eq('transaction_type', transaction_type).order('created_at', desc=True).execute()
+    return response.data
+
+
+def get_transactions_by_date_range(start_date: str, end_date: str):
+    """
+    Fetch transactions within a date range.
+    start_date, end_date: 'YYYY-MM-DD' format
+    """
+    client = get_supabase_client()
+    response = client.table('myapp_stocktransaction').select(
+        "*, myapp_product(name, selling_price)"
+    ).gte('created_at', start_date).lte('created_at', end_date).execute()
+    return response.data
+
+
+def create_transaction(data: dict):
+    """
+    Insert a new stock transaction.
+    
+    data = {
+        'product_id': int,
+        'transaction_type': str,  # 'SALE', 'RESTOCK', 'ADJUSTMENT'
+        'quantity': int,
+        'note': str,
+        'created_by_id': int,
+    }
+    """
+    client = get_supabase_client()
+    response = client.table('myapp_stocktransaction').insert(data).execute()
+    return response.data
+
+
+def delete_transaction(transaction_id: int):
+    """Delete a transaction by ID."""
+    client = get_supabase_client()
+    response = client.table('myapp_stocktransaction').delete().eq('id', transaction_id).execute()
+    return response.data
+
+
+def delete_all_transactions():
+    """Delete all transactions — use with caution."""
+    client = get_supabase_client()
+    response = client.table('myapp_stocktransaction').delete().neq('id', 0).execute()
+    return response.data
+
+
+# ===== Revenue & Reports =====
+
+def get_sales_revenue():
+    """
+    Fetch all SALE transactions with product prices for revenue calculation.
+    """
+    client = get_supabase_client()
+    response = client.table('myapp_stocktransaction').select(
+        "id, quantity, created_at, myapp_product(name, selling_price)"
+    ).eq('transaction_type', 'SALE').order('created_at').execute()
+    return response.data
+
+
+def get_top_products_this_week(start_of_week: str, today: str):
+    """
+    Fetch sales from start of week to today for top products report.
+    start_of_week, today: 'YYYY-MM-DD' format
+    """
+    client = get_supabase_client()
+    response = client.table('myapp_stocktransaction').select(
+        "quantity, product_id, myapp_product(name, selling_price)"
+    ).eq('transaction_type', 'SALE').gte(
+        'created_at', start_of_week
+    ).lte('created_at', today).execute()
+    return response.data
+
+
+# ===== User Operations =====
+
+def get_user_by_username(username: str):
+    """Fetch a Django auth user by username."""
+    client = get_supabase_client()
+    response = client.table('auth_user').select(
+        "id, username, email, first_name, last_name, date_joined, is_staff"
+    ).eq('username', username).execute()
+    return response.data[0] if response.data else None

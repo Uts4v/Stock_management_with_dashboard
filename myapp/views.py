@@ -23,6 +23,30 @@ from .serializers import (
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 
+# Supabase integration
+from .supabase_client import get_supabase_client
+
+@api_view(['GET'])
+def supabase_example(request):
+    """
+    Example view demonstrating Supabase integration.
+    GET /api/supabase/example/
+    """
+    try:
+        client = get_supabase_client()
+        # Example: Fetch data from a table (replace 'your_table' with actual table name)
+        # response = client.table('your_table').select("*").execute()
+        return Response({
+            'status': 'success',
+            'message': 'Supabase connection successful',
+            'url': client.supabase_url,
+        })
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 @api_view(['GET'])
 def current_user(request):
     """
