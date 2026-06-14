@@ -141,6 +141,9 @@ def create_transaction(data: dict):
     }
     """
     client = get_supabase_client()
+    # Add created_at timestamp
+    from datetime import datetime, timezone
+    data['created_at'] = datetime.now(timezone.utc).isoformat()
     response = client.table('myapp_stocktransaction').insert(data).execute()
     return response.data
 
