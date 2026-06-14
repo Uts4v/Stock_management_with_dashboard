@@ -939,20 +939,76 @@ class SalesHistoryView(APIView):
     Supports: ?type=SALE|RESTOCK|ADJUSTMENT &start_date=YYYY-MM-DD &end_date=YYYY-MM-DD &product_id=1
     """
     def get(self, request):
-        queryset = StockTransaction.objects.select_related('product', 'variant').all()
-
         trans_type = request.query_params.get('type', None)
-        if trans_type:
-            queryset = queryset.filter(transaction_type=trans_type)
-
         start_date = request.query_params.get('start_date', None)
         end_date = request.query_params.get('end_date', None)
+        product_id = request.query_params.get('product_id', None)
+        
+        if not settings.DEBUG:
+            # Production: Fetch from Supabase
+            try:
+                all_transactions = get_all_transactions()
+                
+                # Apply filters
+                if trans_type:
+                    all_transactions = [t for t in all_transactions if t.get('transaction_type') == trans_type]
+                if start_date:
+                    all_transactions = [t for t in all_transactions if t.get('created_at', '').startswith(start_date)]
+                if end_date:
+                    all_transactions = [t for t in all_transactions if t.get('created_at', '').startswith(end_date)]
+                if product_id:
+                    all_transactions = [t for t in all_transactions if t.get('product_id') == int(product_id)]
+                
+                # Sort by created_at desc and limit
+                all_transactions.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+                all_transactions = all_transactions[:500]
+                
+                transactions = []
+                for t in all_transactions:
+                    product_data = t.get('myapp_product', {})
+                    product_name = product_data.get('name', 'Unknown') if product_data else 'Unknown'
+                    selling_price = product_data.get('selling_price', 0) if product_data else 0
+                    
+                    # Get variant info if exists
+                    variant_id = t.get('variant_id')
+                    variant_label = None
+                    if variant_id:
+                        variant = get_variant_by_id(variant_id)
+                        if variant:
+                            variant_label = f"{variant.get('variant_type')}: {variant.get('variant_value')}"
+                            selling_price = variant.get('selling_price', selling_price)
+                    
+                    unit_price = selling_price
+                    revenue = (float(t.get('quantity', 0) * unit_price) 
+                              if t.get('transaction_type') == 'SALE' else None)
+                    
+                    transactions.append({
+                        'id': t.get('id'),
+                        'product_id': t.get('product_id'),
+                        'product_name': product_name,
+                        'variant_id': variant_id,
+                        'variant_label': variant_label,
+                        'transaction_type': t.get('transaction_type'),
+                        'quantity': t.get('quantity'),
+                        'unit_price': float(unit_price),
+                        'revenue': revenue,
+                        'note': t.get('note') or '',
+                        'created_at': t.get('created_at', ''),
+                    })
+                
+                return Response(transactions)
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Development: Use local SQLite
+        queryset = StockTransaction.objects.select_related('product', 'variant').all()
+
+        if trans_type:
+            queryset = queryset.filter(transaction_type=trans_type)
         if start_date:
             queryset = queryset.filter(created_at__date__gte=start_date)
         if end_date:
             queryset = queryset.filter(created_at__date__lte=end_date)
-
-        product_id = request.query_params.get('product_id', None)
         if product_id:
             queryset = queryset.filter(product_id=product_id)
 
@@ -1002,6 +1058,40 @@ class SalesSummaryView(APIView):
         start_date = request.query_params.get('start_date', None)
         end_date = request.query_params.get('end_date', None)
 
+        if not settings.DEBUG:
+            # Production: Fetch from Supabase
+            try:
+                all_transactions = get_all_transactions()
+                # Filter for sales only
+                sales = [t for t in all_transactions if t.get('transaction_type') == 'sale']
+                
+                # Apply date filters
+                if start_date:
+                    sales = [t for t in sales if t.get('created_at', '') >= start_date]
+                if end_date:
+                    sales = [t for t in sales if t.get('created_at', '') <= end_date + 'T23:59:59']
+                
+                total_sales = len(sales)
+                total_quantity = sum(t.get('quantity', 0) for t in sales)
+                
+                # Calculate revenue
+                total_revenue = 0.0
+                for t in sales:
+                    unit_price = float(t.get('unit_price', 0) or 0)
+                    total_revenue += t.get('quantity', 0) * unit_price
+                
+                avg_sale_value = total_revenue / total_sales if total_sales > 0 else 0
+                
+                return Response({
+                    'total_transactions': total_sales,
+                    'total_quantity_sold': total_quantity,
+                    'total_revenue': round(total_revenue, 2),
+                    'average_sale_value': round(avg_sale_value, 2),
+                })
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Development: Use local SQLite
         queryset = StockTransaction.objects.filter(
             transaction_type=StockTransaction.TransactionType.SALE
         ).select_related('product', 'variant')

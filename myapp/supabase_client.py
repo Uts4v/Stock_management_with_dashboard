@@ -30,10 +30,30 @@ def get_supabase_client():
 # ===== Product Operations =====
 
 def get_all_products():
-    """Fetch all products from Supabase."""
+    """Fetch all products from Supabase with their variants."""
     client = get_supabase_client()
     response = client.table('myapp_product').select("*").execute()
-    return response.data
+    products = response.data
+    
+    if not products:
+        return []
+    
+    # Fetch all variants
+    variants_response = client.table('myapp_productvariant').select("*").execute()
+    variants_by_product = {}
+    for variant in variants_response.data:
+        product_id = variant.get('product_id')
+        if product_id not in variants_by_product:
+            variants_by_product[product_id] = []
+        variants_by_product[product_id].append(variant)
+    
+    # Attach variants to each product
+    for product in products:
+        product_id = product.get('id')
+        product['variants'] = variants_by_product.get(product_id, [])
+        product['has_variants'] = len(product['variants']) > 0
+    
+    return products
 
 
 def get_product_by_id(product_id: int):

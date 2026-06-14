@@ -117,6 +117,7 @@ class ProductDictSerializer(serializers.Serializer):
     is_near_low_stock = serializers.BooleanField(required=False)
     status = serializers.CharField(required=False)
     has_variants = serializers.BooleanField(required=False, default=False)
+    variants = serializers.ListField(required=False, default=list)
 
 
 class ProductVariantDictSerializer(serializers.Serializer):
