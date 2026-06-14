@@ -28,9 +28,11 @@ from rest_framework.authentication import SessionAuthentication
 from .supabase_client import (
     get_supabase_client,
     get_all_products,
+    get_product_by_id,
     create_product, update_product, delete_product,
     create_variant, update_variant, delete_variant,
     get_all_variants,
+    get_variant_by_id,
 )
 
 # Try to import openpyxl for Excel export
