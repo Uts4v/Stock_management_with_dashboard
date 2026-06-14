@@ -47,11 +47,26 @@ def get_all_products():
             variants_by_product[product_id] = []
         variants_by_product[product_id].append(variant)
     
-    # Attach variants to each product
+    # Attach variants to each product and compute status
     for product in products:
         product_id = product.get('id')
         product['variants'] = variants_by_product.get(product_id, [])
         product['has_variants'] = len(product['variants']) > 0
+        
+        # Compute status based on stock and min_stock
+        stock = product.get('stock', 0)
+        min_stock = product.get('min_stock', 0)
+        if stock <= 0:
+            product['status'] = 'Out of Stock'
+        elif stock <= min_stock:
+            product['status'] = 'Low'
+        elif stock <= min_stock * 1.5:
+            product['status'] = 'Near Low'
+        else:
+            product['status'] = 'OK'
+        
+        # Also compute is_low_stock flag
+        product['is_low_stock'] = stock <= min_stock
     
     return products
 
@@ -154,17 +169,29 @@ def create_transaction(data: dict):
     
     data = {
         'product_id': int,
+        'variant_id': int (optional),
         'transaction_type': str,  # 'SALE', 'RESTOCK', 'ADJUSTMENT'
         'quantity': int,
         'note': str,
-        'created_by_id': int,
+        'created_by_id': int (optional),
     }
     """
     client = get_supabase_client()
     # Add created_at timestamp
     from datetime import datetime, timezone
-    data['created_at'] = datetime.now(timezone.utc).isoformat()
-    response = client.table('myapp_stocktransaction').insert(data).execute()
+    insert_data = {
+        'product_id': data.get('product_id'),
+        'transaction_type': data.get('transaction_type'),
+        'quantity': data.get('quantity'),
+        'note': data.get('note', ''),
+        'created_at': datetime.now(timezone.utc).isoformat(),
+    }
+    # Add optional fields only if they exist
+    if 'variant_id' in data and data['variant_id']:
+        insert_data['variant_id'] = data['variant_id']
+    if 'created_by_id' in data and data['created_by_id']:
+        insert_data['created_by_id'] = data['created_by_id']
+    response = client.table('myapp_stocktransaction').insert(insert_data).execute()
     return response.data
 
 
