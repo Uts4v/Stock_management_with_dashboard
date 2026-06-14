@@ -1171,8 +1171,7 @@ async function saveStockEdit(productId) {
     }
     
     try {
-        const product = products.find(p => p.id === productId);
-        await API.updateProduct(productId, { ...product, stock: newStock });
+        await API.updateProductStock(productId, newStock);
         showToast('Stock updated!');
         loadProducts();
     } catch (error) {

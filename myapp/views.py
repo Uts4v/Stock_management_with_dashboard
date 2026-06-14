@@ -236,14 +236,49 @@ class ProductViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def sell(self, request, pk=None):
         """Sell a product – deduct stock and create SALE transaction."""
-        product = self.get_object()
         serializer = SellSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         quantity = serializer.validated_data['quantity']
         note = serializer.validated_data.get('note', '')
-
+        
+        if not settings.DEBUG:
+            # Production: Work directly with Supabase
+            try:
+                product = get_product_by_id(int(pk))
+                if not product:
+                    return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+                
+                if product['stock'] < quantity:
+                    return Response(
+                        {'error': f'Insufficient stock. Available: {product["stock"]}'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                new_stock = product['stock'] - quantity
+                update_product(int(pk), {'stock': new_stock})
+                
+                # Create transaction in Supabase
+                txn_data = {
+                    'product_id': int(pk),
+                    'transaction_type': 'SALE',
+                    'quantity': quantity,
+                    'note': note,
+                }
+                if request.user.is_authenticated:
+                    txn_data['created_by_id'] = request.user.id
+                create_transaction(txn_data)
+                
+                return Response({
+                    'message': f'Sold {quantity} units of {product["name"]}',
+                    'product': {**product, 'stock': new_stock}
+                })
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Development: Use local SQLite
+        product = self.get_object()
         if product.stock < quantity:
             return Response(
                 {'error': f'Insufficient stock. Available: {product.stock}'},
@@ -276,14 +311,43 @@ class ProductViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def restock(self, request, pk=None):
         """Restock a product – add stock and create RESTOCK transaction."""
-        product = self.get_object()
         serializer = RestockSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         quantity = serializer.validated_data['quantity']
         note = serializer.validated_data.get('note', '')
-
+        
+        if not settings.DEBUG:
+            # Production: Work directly with Supabase
+            try:
+                product = get_product_by_id(int(pk))
+                if not product:
+                    return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+                
+                new_stock = product['stock'] + quantity
+                update_product(int(pk), {'stock': new_stock})
+                
+                # Create transaction in Supabase
+                txn_data = {
+                    'product_id': int(pk),
+                    'transaction_type': 'RESTOCK',
+                    'quantity': quantity,
+                    'note': note,
+                }
+                if request.user.is_authenticated:
+                    txn_data['created_by_id'] = request.user.id
+                create_transaction(txn_data)
+                
+                return Response({
+                    'message': f'Restocked {quantity} units of {product["name"]}',
+                    'product': {**product, 'stock': new_stock}
+                })
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Development: Use local SQLite
+        product = self.get_object()
         product.stock += quantity
         product.save()
 
@@ -306,6 +370,84 @@ class ProductViewSet(viewsets.ModelViewSet):
             'message': f'Restocked {quantity} units of {product.name}',
             'product': ProductSerializer(product).data
         })
+
+    @action(detail=True, methods=['patch'], url_path='update-stock')
+    def update_stock(self, request, pk=None):
+        """Update product stock directly (for inline editing)."""
+        new_stock = request.data.get('stock')
+        if new_stock is None:
+            return Response({'error': 'stock is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            new_stock = int(new_stock)
+            if new_stock < 0:
+                return Response({'error': 'stock must be non-negative'}, status=status.HTTP_400_BAD_REQUEST)
+        except (ValueError, TypeError):
+            return Response({'error': 'stock must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not settings.DEBUG:
+            # Production: Update directly in Supabase
+            try:
+                product = get_product_by_id(int(pk))
+                if not product:
+                    return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+                
+                update_product(int(pk), {'stock': new_stock})
+                return Response({'message': 'Stock updated', 'stock': new_stock})
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Development: Use local SQLite
+        product = self.get_object()
+        product.stock = new_stock
+        product.save()
+        
+        # Sync to Supabase
+        try:
+            update_product(product.id, {'stock': new_stock})
+        except Exception as e:
+            print(f"Supabase sync error (update stock): {e}")
+        
+        return Response({'message': 'Stock updated', 'stock': new_stock})
+
+    @action(detail=True, methods=['patch'])
+    def update_min_stock(self, request, pk=None):
+        """Update product min_stock."""
+        min_stock = request.data.get('min_stock')
+        if min_stock is None:
+            return Response({'error': 'min_stock is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            min_stock = int(min_stock)
+            if min_stock < 0:
+                return Response({'error': 'min_stock must be non-negative'}, status=status.HTTP_400_BAD_REQUEST)
+        except (ValueError, TypeError):
+            return Response({'error': 'min_stock must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not settings.DEBUG:
+            # Production: Update directly in Supabase
+            try:
+                product = get_product_by_id(int(pk))
+                if not product:
+                    return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+                
+                update_product(int(pk), {'min_stock': min_stock})
+                return Response({'message': 'Min stock updated', 'min_stock': min_stock})
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Development: Use local SQLite
+        product = self.get_object()
+        product.min_stock = min_stock
+        product.save()
+        
+        # Sync to Supabase
+        try:
+            update_product(product.id, {'min_stock': min_stock})
+        except Exception as e:
+            print(f"Supabase sync error (update min_stock): {e}")
+        
+        return Response({'message': 'Min stock updated', 'min_stock': min_stock})
 
 
 # ─────────────────────────────────────────────
@@ -477,14 +619,50 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def sell(self, request, pk=None):
         """Sell a variant – deduct stock and create SALE transaction."""
-        variant = self.get_object()
         serializer = SellSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         quantity = serializer.validated_data['quantity']
         note = serializer.validated_data.get('note', '')
-
+        
+        if not settings.DEBUG:
+            # Production: Work directly with Supabase
+            try:
+                variant = get_variant_by_id(int(pk))
+                if not variant:
+                    return Response({'error': 'Variant not found'}, status=status.HTTP_404_NOT_FOUND)
+                
+                if variant['stock'] < quantity:
+                    return Response(
+                        {'error': f'Insufficient stock. Available: {variant["stock"]}'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                new_stock = variant['stock'] - quantity
+                update_variant(int(pk), {'stock': new_stock})
+                
+                # Create transaction in Supabase
+                txn_data = {
+                    'product_id': variant['product_id'],
+                    'variant_id': int(pk),
+                    'transaction_type': 'SALE',
+                    'quantity': quantity,
+                    'note': note,
+                }
+                if request.user.is_authenticated:
+                    txn_data['created_by_id'] = request.user.id
+                create_transaction(txn_data)
+                
+                return Response({
+                    'message': f'Sold {quantity} units of {variant["variant_type"]}: {variant["variant_value"]}',
+                    'variant': {**variant, 'stock': new_stock}
+                })
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Development: Use local SQLite
+        variant = self.get_object()
         if variant.stock < quantity:
             return Response(
                 {'error': f'Insufficient stock. Available: {variant.stock}'},
@@ -519,14 +697,44 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def restock(self, request, pk=None):
         """Restock a variant – add stock and create RESTOCK transaction."""
-        variant = self.get_object()
         serializer = RestockSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         quantity = serializer.validated_data['quantity']
         note = serializer.validated_data.get('note', '')
-
+        
+        if not settings.DEBUG:
+            # Production: Work directly with Supabase
+            try:
+                variant = get_variant_by_id(int(pk))
+                if not variant:
+                    return Response({'error': 'Variant not found'}, status=status.HTTP_404_NOT_FOUND)
+                
+                new_stock = variant['stock'] + quantity
+                update_variant(int(pk), {'stock': new_stock})
+                
+                # Create transaction in Supabase
+                txn_data = {
+                    'product_id': variant['product_id'],
+                    'variant_id': int(pk),
+                    'transaction_type': 'RESTOCK',
+                    'quantity': quantity,
+                    'note': note,
+                }
+                if request.user.is_authenticated:
+                    txn_data['created_by_id'] = request.user.id
+                create_transaction(txn_data)
+                
+                return Response({
+                    'message': f'Restocked {quantity} units of {variant["variant_type"]}: {variant["variant_value"]}',
+                    'variant': {**variant, 'stock': new_stock}
+                })
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Development: Use local SQLite
+        variant = self.get_object()
         variant.stock += quantity
         variant.save()
         variant.product.update_total_stock()
@@ -551,6 +759,46 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
             'message': f'Restocked {quantity} units of {variant.product.name} ({variant.variant_type}: {variant.variant_value})',
             'variant': ProductVariantSerializer(variant).data
         })
+
+    @action(detail=True, methods=['patch'], url_path='update-stock')
+    def update_stock(self, request, pk=None):
+        """Update variant stock directly (for inline editing)."""
+        new_stock = request.data.get('stock')
+        if new_stock is None:
+            return Response({'error': 'stock is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            new_stock = int(new_stock)
+            if new_stock < 0:
+                return Response({'error': 'stock must be non-negative'}, status=status.HTTP_400_BAD_REQUEST)
+        except (ValueError, TypeError):
+            return Response({'error': 'stock must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not settings.DEBUG:
+            # Production: Update directly in Supabase
+            try:
+                variant = get_variant_by_id(int(pk))
+                if not variant:
+                    return Response({'error': 'Variant not found'}, status=status.HTTP_404_NOT_FOUND)
+                
+                update_variant(int(pk), {'stock': new_stock})
+                return Response({'message': 'Stock updated', 'stock': new_stock})
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Development: Use local SQLite
+        variant = self.get_object()
+        variant.stock = new_stock
+        variant.save()
+        variant.product.update_total_stock()
+        
+        # Sync to Supabase
+        try:
+            update_variant(variant.id, {'stock': new_stock})
+        except Exception as e:
+            print(f"Supabase sync error (update variant stock): {e}")
+        
+        return Response({'message': 'Stock updated', 'stock': new_stock})
 
 
 # ─────────────────────────────────────────────

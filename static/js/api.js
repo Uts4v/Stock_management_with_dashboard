@@ -224,12 +224,36 @@ const API = {
     },
     
     /**
+     * Update product stock directly (set absolute value)
+     * @param {number} productId - Product ID
+     * @param {number} stock - New stock value
+     */
+    async updateProductStock(productId, stock) {
+        return this.request(`/products/${productId}/update-stock/`, {
+            method: 'PATCH',
+            body: JSON.stringify({ stock: stock }),
+        });
+    },
+    
+    /**
+     * Update product min stock level
+     * @param {number} productId - Product ID
+     * @param {number} minStock - New min stock value
+     */
+    async updateProductMinStock(productId, minStock) {
+        return this.request(`/products/${productId}/update_min_stock/`, {
+            method: 'PATCH',
+            body: JSON.stringify({ min_stock: minStock }),
+        });
+    },
+    
+    /**
      * Update variant stock directly (set absolute value)
      * @param {number} variantId - Variant ID
      * @param {number} stock - New stock value
      */
     async updateVariantStock(variantId, stock) {
-        return this.request(`/variants/${variantId}/`, {
+        return this.request(`/variants/${variantId}/update-stock/`, {
             method: 'PATCH',
             body: JSON.stringify({ stock: stock }),
         });
