@@ -33,6 +33,7 @@ from .supabase_client import (
     create_variant, update_variant, delete_variant,
     get_all_variants,
     get_variant_by_id,
+    create_transaction,
 )
 
 # Try to import openpyxl for Excel export
