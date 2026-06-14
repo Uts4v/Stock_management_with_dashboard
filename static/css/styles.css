@@ -1,5 +1,5 @@
 :root {
-    --primary: #2563eb;
+    --primary: #328956;
     --primary-dark: #1d4ed8;
     --success: #16a34a;
     --warning: #d97706;
@@ -39,7 +39,7 @@ body {
     left: 0;
     right: 0;
     height: var(--navbar-height);
-    background: linear-gradient(135deg, #1e3a5f, #2563eb);
+    background: linear-gradient(135deg, #1e3a5f, #328956);
     display: flex;
     align-items: center;
     padding: 0 24px;
@@ -144,7 +144,7 @@ body {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: #2563eb;
+    background: #328956;
     color: white;
     display: flex;
     align-items: center;
@@ -310,7 +310,7 @@ body {
     flex-shrink: 0;
 }
 
-.icon.blue   { background: #eff6ff; color: #2563eb; }
+.icon.blue   { background: #eff6ff; color: #328956; }
 .icon.green  { background: #f0fdf4; color: #16a34a; }
 .icon.orange { background: #fff7ed; color: #d97706; }
 .icon.red    { background: #fef2f2; color: #dc2626; }
