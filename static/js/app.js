@@ -148,9 +148,9 @@ function debounce(func, wait) {
 }
 
 function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD'
+    return 'NPR ' + new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
     }).format(amount);
 }
 
