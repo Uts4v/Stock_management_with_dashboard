@@ -137,6 +137,92 @@ const API = {
         return this.request('/products/categories/');
     },
     
+    // ===== Variant Endpoints =====
+    
+    /**
+     * Get all variants with optional product filter
+     * @param {number} productId - Optional product ID to filter variants
+     */
+    async getVariants(productId = null) {
+        let endpoint = '/variants/';
+        if (productId) endpoint += `?product_id=${productId}`;
+        return this.request(endpoint);
+    },
+    
+    /**
+     * Get a single variant by ID
+     */
+    async getVariant(id) {
+        return this.request(`/variants/${id}/`);
+    },
+    
+    /**
+     * Create a new variant
+     */
+    async createVariant(variantData) {
+        return this.request('/variants/', {
+            method: 'POST',
+            body: JSON.stringify(variantData),
+        });
+    },
+    
+    /**
+     * Update an existing variant
+     */
+    async updateVariant(id, variantData) {
+        return this.request(`/variants/${id}/`, {
+            method: 'PATCH',
+            body: JSON.stringify(variantData),
+        });
+    },
+    
+    /**
+     * Delete a variant
+     */
+    async deleteVariant(id) {
+        return this.request(`/variants/${id}/`, {
+            method: 'DELETE',
+        });
+    },
+    
+    /**
+     * Sell a variant (deduct stock)
+     * @param {number} variantId - Variant ID
+     * @param {number} quantity - Quantity to sell
+     * @param {string} note - Optional note
+     */
+    async sellVariant(variantId, quantity, note = '') {
+        return this.request(`/variants/${variantId}/sell/`, {
+            method: 'POST',
+            body: JSON.stringify({ quantity, note }),
+        });
+    },
+    
+    /**
+     * Restock a variant (add stock)
+     * @param {number} variantId - Variant ID
+     * @param {number} quantity - Quantity to restock
+     * @param {string} note - Optional note
+     */
+    async restockVariant(variantId, quantity, note = '') {
+        return this.request(`/variants/${variantId}/restock/`, {
+            method: 'POST',
+            body: JSON.stringify({ quantity, note }),
+        });
+    },
+    
+    /**
+     * Update variant min stock level
+     * @param {number} variantId - Variant ID
+     * @param {number} minStock - New min stock value
+     */
+    async updateVariantMinStock(variantId, minStock) {
+        return this.request(`/variants/${variantId}/`, {
+            method: 'PATCH',
+            body: JSON.stringify({ min_stock: minStock }),
+        });
+    },
+    
     // ===== Report Endpoints =====
     
     /**

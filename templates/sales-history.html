@@ -69,7 +69,7 @@
                 <i class="fas fa-dollar-sign"></i>
             </div>
             <div class="info">
-                <h3 id="totalRevenue">$0.00</h3>
+                <h3 id="totalRevenue">NPR 0.00</h3>
                 <p>Total Revenue</p>
             </div>
         </div>
@@ -78,7 +78,7 @@
                 <i class="fas fa-chart-line"></i>
             </div>
             <div class="info">
-                <h3 id="avgSaleValue">$0.00</h3>
+                <h3 id="avgSaleValue">NPR 0.00</h3>
                 <p>Avg Sale Value</p>
             </div>
         </div>
@@ -235,8 +235,8 @@ async function loadSummary() {
         
         document.getElementById('totalTransactions').textContent = data.total_transactions || 0;
         document.getElementById('totalQuantitySold').textContent = data.total_quantity_sold || 0;
-        document.getElementById('totalRevenue').textContent = `$${(data.total_revenue || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('avgSaleValue').textContent = `$${(data.average_sale_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('totalRevenue').textContent = `NPR ${(data.total_revenue || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('avgSaleValue').textContent = `NPR ${(data.average_sale_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     } catch (error) {
         console.error('Error loading summary:', error);
     }
@@ -367,9 +367,9 @@ function renderTransactions() {
                     </span>
                 </td>
                 <td>${t.quantity}</td>
-                <td>$${t.unit_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td>NPR ${t.unit_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 <td class="${t.revenue !== null ? 'revenue-cell' : ''}">
-                    ${typeof totalValue === 'number' ? '$' + totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : totalValue}
+                    ${typeof totalValue === 'number' ? 'NPR ' + totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : totalValue}
                 </td>
                 <td>${t.note || '-'}</td>
                 <td>

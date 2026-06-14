@@ -71,9 +71,11 @@ TEMPLATES = [
 WSGI_APPLICATION = 'stockmanagement.wsgi.application'
 
 # ===== DATABASE =====
+# ===== DATABASE =====
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-if DATABASE_URL:
+if DATABASE_URL and not DEBUG:
+    # Production - Supabase PostgreSQL
     DATABASES = {
         'default': dj_database_url.parse(
             DATABASE_URL,
@@ -81,6 +83,7 @@ if DATABASE_URL:
         )
     }
 else:
+    # Local development - SQLite
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

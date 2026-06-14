@@ -2,9 +2,12 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 
+# In your router registration:
+
 # Create router for ViewSet
 router = DefaultRouter()
 router.register(r'products', views.ProductViewSet, basename='product')
+router.register(r'variants', views.ProductVariantViewSet, basename='product-variant')
 
 urlpatterns = [
     # API endpoints - specific paths BEFORE router

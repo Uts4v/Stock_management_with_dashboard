@@ -195,3 +195,66 @@ def get_user_by_username(username: str):
         "id, username, email, first_name, last_name, date_joined, is_staff"
     ).eq('username', username).execute()
     return response.data[0] if response.data else None
+
+
+# ===== ProductVariant Operations =====
+
+def get_all_variants():
+    """Fetch all product variants from Supabase."""
+    client = get_supabase_client()
+    response = client.table('myapp_productvariant').select(
+        "*, myapp_product(name)"
+    ).execute()
+    return response.data
+
+
+def get_variant_by_id(variant_id: int):
+    """Fetch a single variant by ID."""
+    client = get_supabase_client()
+    response = client.table('myapp_productvariant').select(
+        "*, myapp_product(name)"
+    ).eq('id', variant_id).execute()
+    return response.data[0] if response.data else None
+
+
+def get_variants_by_product(product_id: int):
+    """Fetch all variants for a specific product."""
+    client = get_supabase_client()
+    response = client.table('myapp_productvariant').select(
+        "*, myapp_product(name)"
+    ).eq('product_id', product_id).execute()
+    return response.data
+
+
+def create_variant(data: dict):
+    """
+    Insert a new product variant into Supabase.
+    
+    data = {
+        'product_id': int,
+        'variant_type': str,
+        'variant_value': str,
+        'stock': int,
+        'min_stock': int,
+        'cost_price': float,
+        'selling_price': float,
+        'barcode': str,
+    }
+    """
+    client = get_supabase_client()
+    response = client.table('myapp_productvariant').insert(data).execute()
+    return response.data
+
+
+def update_variant(variant_id: int, data: dict):
+    """Update an existing variant by ID."""
+    client = get_supabase_client()
+    response = client.table('myapp_productvariant').update(data).eq('id', variant_id).execute()
+    return response.data
+
+
+def delete_variant(variant_id: int):
+    """Delete a variant by ID."""
+    client = get_supabase_client()
+    response = client.table('myapp_productvariant').delete().eq('id', variant_id).execute()
+    return response.data

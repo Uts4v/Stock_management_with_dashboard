@@ -5,32 +5,399 @@
 
 {% block extra_head %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ===== SUMMARY CARDS ===== */
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+.summary-card {
+    background: white;
+    border-radius: 12px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    border: 1px solid #f1f5f9;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.summary-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.summary-card .icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+}
+.summary-card .icon.blue   { background:#eff6ff; color:#2563eb; }
+.summary-card .icon.green  { background:#f0fdf4; color:#16a34a; }
+.summary-card .icon.orange { background:#fff7ed; color:#ea580c; }
+.summary-card .icon.red    { background:#fef2f2; color:#dc2626; }
+.summary-card .info h3 { font-size:20px; font-weight:700; color:#1e293b; margin:0 0 2px; }
+.summary-card .info p  { font-size:11px; color:#64748b; margin:0; font-weight:500; text-transform:uppercase; letter-spacing:0.04em; }
+
+/* ===== PAGE HEADER ===== */
+.page-header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:18px; flex-wrap:wrap; gap:10px;
+}
+.page-title { font-size:22px; font-weight:700; color:#1e293b; margin:0; }
+.header-actions { display:flex; gap:8px; flex-wrap:wrap; }
+
+/* ===== BUTTONS ===== */
+.btn {
+    padding:8px 14px; border-radius:8px; font-size:13px; font-weight:600;
+    cursor:pointer; border:none; display:inline-flex; align-items:center;
+    gap:5px; transition:all 0.2s; text-decoration:none; white-space:nowrap;
+}
+.btn-primary   { background:#2563eb; color:white; }
+.btn-primary:hover   { background:#1d4ed8; }
+.btn-success   { background:#16a34a; color:white; }
+.btn-success:hover   { background:#15803d; }
+.btn-info      { background:#0891b2; color:white; }
+.btn-info:hover      { background:#0e7490; }
+.btn-secondary { background:#6366f1; color:white; }
+.btn-secondary:hover { background:#4f46e5; }
+.btn-ghost     { background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; }
+.btn-ghost:hover     { background:#e2e8f0; }
+.btn-warning   { background:#f59e0b; color:white; }
+.btn-warning:hover   { background:#d97706; }
+.btn-sm { padding:5px 9px; font-size:12px; border-radius:6px; }
+.btn-icon { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+.btn-icon:hover { background:#dc2626; color:white; }
+
+/* ===== ADD PRODUCT FORM ===== */
+.add-product-form {
+    background:white; border-radius:12px; padding:22px;
+    margin-bottom:18px; box-shadow:0 1px 3px rgba(0,0,0,0.07);
+    border:1px solid #e2e8f0;
+}
+.add-product-form h3 {
+    font-size:15px; font-weight:700; color:#1e293b;
+    margin:0 0 18px; padding-bottom:12px; border-bottom:1px solid #f1f5f9;
+    display:flex; align-items:center; gap:8px;
+}
+.form-grid {
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:12px;
+}
+.form-group { display:flex; flex-direction:column; gap:4px; }
+.form-group label { font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.04em; }
+.form-group input, .form-group select {
+    padding:9px 11px; border:1.5px solid #e2e8f0; border-radius:8px;
+    font-size:13px; color:#1e293b; outline:none; width:100%;
+    transition:border-color 0.2s, box-shadow 0.2s;
+}
+.form-group input:focus, .form-group select:focus {
+    border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.1);
+}
+.form-actions {
+    display:flex; gap:8px; justify-content:flex-end;
+    margin-top:18px; padding-top:14px; border-top:1px solid #f1f5f9;
+}
+
+/* ===== TABLE CONTAINER ===== */
+.table-container {
+    background:white; border-radius:12px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.07);
+    border:1px solid #f1f5f9; overflow:hidden;
+}
+.table-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 18px; border-bottom:1px solid #f1f5f9;
+}
+.table-title { font-size:14px; font-weight:700; color:#1e293b; display:flex; align-items:center; gap:7px; }
+
+/* ===== DESKTOP TABLE ===== */
+.desktop-table { width:100%; }
+.desktop-table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; }
+th {
+    background:#f8fafc; padding:10px 13px;
+    text-align:left; font-size:10px; font-weight:700;
+    color:#64748b; text-transform:uppercase; letter-spacing:0.06em;
+    border-bottom:1px solid #e2e8f0; white-space:nowrap;
+}
+td {
+    padding:11px 13px; font-size:13px; color:#374151;
+    border-bottom:1px solid #f8fafc; vertical-align:middle;
+}
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:#fafbff; }
+tr.low-stock td { background:#fef9f9; }
+tr.low-stock:hover td { background:#fef2f2; }
+.stock-value { font-weight:700; }
+.stock-value.low { color:#dc2626; }
+
+/* ===== MOBILE CARDS ===== */
+.mobile-products { display:none; }
+.product-card {
+    background:white; border-radius:12px; padding:16px;
+    margin-bottom:10px; border:1px solid #f1f5f9;
+    box-shadow:0 1px 3px rgba(0,0,0,0.06);
+}
+.product-card.low-stock { border-left:3px solid #dc2626; }
+.product-card-header {
+    display:flex; justify-content:space-between;
+    align-items:flex-start; margin-bottom:12px;
+}
+.product-card-name { font-size:15px; font-weight:700; color:#1e293b; }
+.product-card-category { font-size:11px; color:#94a3b8; margin-top:2px; }
+.product-card-stats {
+    display:grid; grid-template-columns:repeat(3,1fr);
+    gap:8px; margin-bottom:12px;
+    background:#f8fafc; border-radius:8px; padding:10px;
+}
+.product-card-stat label { font-size:10px; color:#94a3b8; font-weight:600; text-transform:uppercase; display:block; }
+.product-card-stat span { font-size:14px; font-weight:700; color:#1e293b; }
+.product-card-actions {
+    display:flex; flex-direction:column; gap:8px;
+}
+.action-row {
+    display:flex; gap:6px; align-items:center;
+}
+.action-row label { font-size:11px; color:#64748b; font-weight:600; min-width:60px; }
+.action-row-inputs { display:flex; gap:5px; align-items:center; flex:1; }
+.qty-input-mobile {
+    flex:1; padding:8px; border:1.5px solid #e2e8f0;
+    border-radius:7px; font-size:13px; text-align:center; outline:none;
+    min-width:0;
+}
+.qty-input-mobile:focus { border-color:#2563eb; }
+.card-divider { height:1px; background:#f1f5f9; margin:4px 0; }
+.card-variant-section {
+    margin-top:10px; border-top:1px solid #e0e7ff;
+    padding-top:10px;
+}
+.card-variant-title {
+    font-size:11px; font-weight:700; color:#6366f1;
+    text-transform:uppercase; letter-spacing:0.06em;
+    display:flex; align-items:center; gap:5px; margin-bottom:8px;
+}
+.variant-card {
+    background:#f8faff; border-radius:8px; padding:10px;
+    margin-bottom:8px; border:1px solid #e0e7ff;
+}
+.variant-card-header {
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;
+}
+.variant-card-name { font-size:13px; font-weight:700; color:#1e293b; }
+.variant-card-type {
+    font-size:10px; background:#e0e7ff; color:#4338ca;
+    padding:2px 7px; border-radius:20px; font-weight:600; text-transform:capitalize;
+}
+.variant-card-stats {
+    display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-bottom:8px;
+}
+
+/* ===== BADGES ===== */
+.badge {
+    display:inline-flex; align-items:center; padding:3px 9px;
+    border-radius:20px; font-size:10px; font-weight:700; letter-spacing:0.02em;
+}
+.badge-ok   { background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; }
+.badge-near { background:#fff7ed; color:#ea580c; border:1px solid #fed7aa; }
+.badge-low  { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+.has-variants-badge {
+    display:inline-flex; align-items:center; gap:3px;
+    background:#eff6ff; color:#2563eb; font-size:10px;
+    padding:2px 7px; border-radius:10px; font-weight:700; border:1px solid #bfdbfe;
+}
+
+/* ===== INLINE INPUTS ===== */
+.qty-input {
+    width:50px; padding:5px 6px; border:1.5px solid #e2e8f0;
+    border-radius:6px; font-size:12px; text-align:center; outline:none;
+}
+.qty-input:focus { border-color:#2563eb; }
+.minstock-input {
+    width:54px; padding:5px 6px; border:1.5px solid #e2e8f0;
+    border-radius:6px; font-size:12px; text-align:center; outline:none;
+}
+.minstock-input:focus { border-color:#2563eb; }
+.action-group { display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
+.action-divider { width:1px; height:20px; background:#e2e8f0; margin:0 2px; flex-shrink:0; }
+
+/* ===== EXPAND BUTTON ===== */
+.btn-expand {
+    width:24px; height:24px; background:#f1f5f9; border:1px solid #e2e8f0;
+    border-radius:5px; cursor:pointer; font-size:10px; color:#64748b;
+    display:inline-flex; align-items:center; justify-content:center;
+    transition:all 0.2s; flex-shrink:0;
+}
+.btn-expand:hover { background:#eff6ff; border-color:#2563eb; color:#2563eb; }
+
+/* ===== VARIANTS ROW (DESKTOP) ===== */
+.variants-row td { padding:0 !important; border-bottom:2px solid #e0e7ff !important; }
+.variants-container { padding:12px 16px 12px 42px; background:#f8faff; }
+.variants-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.variants-title {
+    font-size:10px; font-weight:700; color:#6366f1;
+    text-transform:uppercase; letter-spacing:0.08em;
+    display:flex; align-items:center; gap:5px;
+}
+.variants-table { width:100%; border-collapse:collapse; font-size:12px; }
+.variants-table th {
+    background:#e0e7ff; color:#4338ca; padding:6px 9px; font-size:9px;
+}
+.variants-table td { padding:7px 9px; border-bottom:1px solid #e8edf5; background:white; }
+.variants-table tr:last-child td { border-bottom:none; }
+.variants-table tr.low-stock td { background:#fef9f9; }
+
+/* ===== LOADING & EMPTY ===== */
+.loading {
+    display:flex; align-items:center; justify-content:center;
+    padding:48px; flex-direction:column; gap:10px;
+}
+.spinner {
+    width:30px; height:30px; border:3px solid #e2e8f0;
+    border-top-color:#2563eb; border-radius:50%;
+    animation:spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.empty-state { text-align:center; padding:56px 20px; color:#94a3b8; }
+.empty-state i { font-size:44px; margin-bottom:14px; color:#cbd5e1; display:block; }
+.empty-state h3 { color:#475569; font-size:17px; margin-bottom:8px; }
+.empty-state p { font-size:13px; margin-bottom:18px; }
+
+/* ===== MODALS ===== */
+.modal {
+    display:none; position:fixed; inset:0;
+    background:rgba(15,23,42,0.55); z-index:1000;
+    align-items:center; justify-content:center;
+    backdrop-filter:blur(2px); padding:16px;
+}
+.modal.show { display:flex; }
+.modal-content {
+    background:white; border-radius:16px; width:100%;
+    max-width:500px; max-height:92vh; overflow-y:auto;
+    box-shadow:0 24px 64px rgba(0,0,0,0.2);
+    animation:modalIn 0.2s ease;
+}
+@keyframes modalIn {
+    from { transform:scale(0.95) translateY(10px); opacity:0; }
+    to   { transform:scale(1) translateY(0); opacity:1; }
+}
+.modal-header {
+    padding:18px 22px 14px; border-bottom:1px solid #f1f5f9;
+    display:flex; justify-content:space-between; align-items:center;
+    position:sticky; top:0; background:white; z-index:1;
+}
+.modal-header h3 { margin:0; font-size:16px; font-weight:700; color:#1e293b; }
+.modal-body { padding:18px 22px; }
+.modal-footer {
+    padding:14px 22px; border-top:1px solid #f1f5f9;
+    display:flex; gap:8px; justify-content:flex-end;
+    position:sticky; bottom:0; background:white;
+}
+.close-btn {
+    width:28px; height:28px; border-radius:7px; background:#f1f5f9;
+    border:none; cursor:pointer; display:flex; align-items:center;
+    justify-content:center; color:#64748b; font-size:14px; transition:all 0.2s;
+}
+.close-btn:hover { background:#e2e8f0; color:#1e293b; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+.form-hint { font-size:10px; color:#94a3b8; margin-top:3px; }
+.modal .form-group { margin-bottom:13px; }
+.modal .form-group label {
+    font-size:11px; font-weight:700; color:#374151; display:block;
+    margin-bottom:4px; text-transform:uppercase; letter-spacing:0.04em;
+}
+.modal .form-group input, .modal .form-group select {
+    width:100%; padding:9px 11px; border:1.5px solid #e2e8f0;
+    border-radius:8px; font-size:13px; outline:none;
+    transition:border-color 0.2s, box-shadow 0.2s;
+}
+.modal .form-group input:focus, .modal .form-group select:focus {
+    border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.1);
+}
+.product-badge {
+    display:inline-flex; align-items:center; gap:6px;
+    background:#eff6ff; color:#1d4ed8; padding:7px 12px;
+    border-radius:8px; font-size:13px; font-weight:600;
+    margin-bottom:16px; border:1px solid #bfdbfe; width:100%;
+}
+.warning-box {
+    background:#fffbeb; border:1px solid #fcd34d; border-radius:8px;
+    padding:10px 13px; font-size:12px; color:#92400e; margin-bottom:14px;
+    display:flex; align-items:flex-start; gap:7px;
+}
+
+/* ===== MOBILE SEARCH ===== */
+.mobile-search { display:none; gap:8px; margin-bottom:14px; }
+.mobile-search input, .mobile-search select {
+    padding:9px 11px; border:1.5px solid #e2e8f0; border-radius:8px;
+    font-size:13px; outline:none;
+}
+.mobile-search input { flex:1; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+    .summary-cards { grid-template-columns:repeat(2,1fr); gap:10px; }
+}
+@media (max-width: 640px) {
+    .mobile-search { display:flex; }
+    .summary-cards { grid-template-columns:repeat(2,1fr); gap:8px; }
+    .summary-card { padding:12px; gap:10px; }
+    .summary-card .icon { width:40px; height:40px; font-size:17px; border-radius:10px; }
+    .summary-card .info h3 { font-size:17px; }
+    .page-title { font-size:18px; }
+    .header-actions .btn span { display:none; }
+    .desktop-table-wrap { display:none; }
+    .mobile-products { display:block; }
+    .add-product-form { padding:16px; }
+    .form-grid { grid-template-columns:1fr 1fr; gap:10px; }
+    .modal-content { border-radius:12px; }
+    .form-row { grid-template-columns:1fr; gap:0; }
+    /* Mobile variants table */
+    .variants-container { padding:8px; }
+    .variants-table { font-size:11px; }
+    .variants-table th { padding:5px 4px; font-size:10px; }
+    .variants-table td { padding:5px 4px; }
+    .variants-table .action-group { flex-wrap:wrap; gap:3px; }
+    .variants-table .qty-input { width:45px; padding:3px 5px; font-size:11px; }
+    .variants-table .minstock-input { width:40px; padding:3px 5px; font-size:11px; }
+    .variants-table .btn-sm { padding:3px 6px; font-size:10px; }
+}
+@media (max-width: 380px) {
+    .summary-cards { grid-template-columns:repeat(2,1fr); gap:6px; }
+    .form-grid { grid-template-columns:1fr; }
+}
+</style>
 {% endblock %}
 
 {% block content %}
-<!-- Mobile Search Bar -->
+
+<!-- Mobile Search -->
 <div class="mobile-search">
     <input type="text" id="mobileSearchInput" placeholder="Search products...">
-    <select id="mobileCategoryFilter">
-        <option value="">All</option>
-    </select>
-    <button class="btn-search" onclick="mobileSearch()">
+    <select id="mobileCategoryFilter"><option value="">All</option></select>
+    <button class="btn btn-primary btn-sm" onclick="mobileSearch()">
         <i class="fas fa-search"></i>
     </button>
 </div>
 
 <!-- Page Header -->
 <div class="page-header">
-    <h1 class="page-title">Products</h1>
+    <div>
+        <h1 class="page-title">Products</h1>
+        <p style="margin:2px 0 0;font-size:12px;color:#94a3b8;">Manage your inventory</p>
+    </div>
     <div class="header-actions">
-        <button class="btn btn-success" onclick="downloadExcel()">
-            <i class="fas fa-file-excel"></i> Download Excel
+        <button class="btn btn-ghost" onclick="downloadExcel()">
+            <i class="fas fa-file-excel" style="color:#16a34a;"></i>
+            <span>Excel</span>
         </button>
-        <button class="btn btn-info" onclick="openGoogleSheetsModal()">
-            <i class="fas fa-cloud"></i> Google Sheets
+        <button class="btn btn-ghost" onclick="openGoogleSheetsModal()">
+            <i class="fas fa-cloud" style="color:#0891b2;"></i>
+            <span>Sheets</span>
         </button>
         <button class="btn btn-primary" onclick="toggleAddForm()">
-            <i class="fas fa-plus"></i> Add Product
+            <i class="fas fa-plus"></i>
+            <span>Add Product</span>
         </button>
     </div>
 </div>
@@ -38,81 +405,65 @@
 <!-- Summary Cards -->
 <div class="summary-cards">
     <div class="summary-card">
-        <div class="icon blue">
-            <i class="fas fa-boxes-stacked"></i>
-        </div>
-        <div class="info">
-            <h3 id="totalProducts">0</h3>
-            <p>Total Products</p>
-        </div>
+        <div class="icon blue"><i class="fas fa-boxes-stacked"></i></div>
+        <div class="info"><h3 id="totalProducts">0</h3><p>Total Products</p></div>
     </div>
     <div class="summary-card">
-        <div class="icon green">
-            <i class="fas fa-cubes"></i>
-        </div>
-        <div class="info">
-            <h3 id="totalUnits">0</h3>
-            <p>Total Units</p>
-        </div>
+        <div class="icon green"><i class="fas fa-cubes"></i></div>
+        <div class="info"><h3 id="totalUnits">0</h3><p>Total Units</p></div>
     </div>
     <div class="summary-card">
-        <div class="icon orange">
-            <i class="fas fa-chart-line"></i>
-        </div>
-        <div class="info">
-            <h3 id="totalValue">NPR 0</h3>
-            <p>Inventory Value</p>
-        </div>
+        <div class="icon orange"><i class="fas fa-chart-line"></i></div>
+        <div class="info"><h3 id="totalValue">NPR 0</h3><p>Inventory Value</p></div>
     </div>
     <div class="summary-card">
-        <div class="icon red">
-            <i class="fas fa-triangle-exclamation"></i>
-        </div>
-        <div class="info">
-            <h3 id="lowStockCount">0</h3>
-            <p>Low Stock Items</p>
-        </div>
+        <div class="icon red"><i class="fas fa-triangle-exclamation"></i></div>
+        <div class="info"><h3 id="lowStockCount">0</h3><p>Low Stock</p></div>
     </div>
 </div>
 
-<!-- Add Product Form (Hidden by default) -->
-<div id="addProductForm" class="add-product-form" style="display: none;">
-    <h3 style="margin-bottom: 16px;">Add New Product</h3>
+<!-- Add Product Form -->
+<div id="addProductForm" class="add-product-form" style="display:none;">
+    <h3><i class="fas fa-plus-circle" style="color:#2563eb;"></i> Add New Product</h3>
     <form id="productForm" onsubmit="handleAddProduct(event)">
         <div class="form-grid">
             <div class="form-group">
-                <label for="productName">Product Name *</label>
-                <input type="text" id="productName" name="name" required>
+                <label>Product Name *</label>
+                <input type="text" id="productName" name="name" placeholder="e.g. Milk Tea" required>
             </div>
             <div class="form-group">
-                <label for="productCategory">Category</label>
-                <input type="text" id="productCategory" name="category" list="categoryList">
+                <label>Category</label>
+                <input type="text" id="productCategory" name="category" list="categoryList" placeholder="e.g. Beverages">
                 <datalist id="categoryList"></datalist>
             </div>
             <div class="form-group">
-                <label for="productBarcode">Barcode</label>
-                <input type="text" id="productBarcode" name="barcode">
+                <label>Barcode</label>
+                <input type="text" id="productBarcode" name="barcode" placeholder="Scan or type">
             </div>
             <div class="form-group">
-                <label for="productStock">Initial Stock</label>
+                <label>Initial Stock</label>
                 <input type="number" id="productStock" name="stock" min="0" value="0">
             </div>
             <div class="form-group">
-                <label for="productMinStock">Minimum Stock Level</label>
+                <label>Min Stock</label>
                 <input type="number" id="productMinStock" name="min_stock" min="0" value="10">
             </div>
             <div class="form-group">
-                <label for="productCostPrice">Cost Price *</label>
-                <input type="number" id="productCostPrice" name="cost_price" min="0" step="0.01" required>
+                <label>Cost Price (NPR) *</label>
+                <input type="number" id="productCostPrice" name="cost_price" min="0" step="0.01" placeholder="0.00" required>
             </div>
             <div class="form-group">
-                <label for="productSellingPrice">Selling Price *</label>
-                <input type="number" id="productSellingPrice" name="selling_price" min="0" step="0.01" required>
+                <label>Selling Price (NPR) *</label>
+                <input type="number" id="productSellingPrice" name="selling_price" min="0" step="0.01" placeholder="0.00" required>
             </div>
         </div>
         <div class="form-actions">
-            <button type="button" class="btn" onclick="toggleAddForm()">Cancel</button>
-            <button type="submit" class="btn btn-primary">Add Product</button>
+            <button type="button" class="btn btn-ghost" onclick="toggleAddForm()">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-check"></i> Add Product
+            </button>
         </div>
     </form>
 </div>
@@ -120,44 +471,157 @@
 <!-- Products Table -->
 <div class="table-container">
     <div class="table-header">
-        <span class="table-title">Product List</span>
-        <span id="resultCount" style="color: var(--text-secondary); font-size: 0.9rem;"></span>
+        <span class="table-title">
+            <i class="fas fa-list" style="color:#2563eb;"></i> Product List
+        </span>
+        <span id="resultCount" style="font-size:12px;color:#94a3b8;font-weight:500;"></span>
     </div>
+
     <div id="loadingSpinner" class="loading">
         <div class="spinner"></div>
+        <span style="font-size:12px;color:#94a3b8;">Loading...</span>
     </div>
-    <div id="emptyState" class="empty-state" style="display: none;">
+
+    <div id="emptyState" class="empty-state" style="display:none;">
         <i class="fas fa-boxes-stacked"></i>
         <h3>No Products Found</h3>
-        <p>Add your first product or adjust your search filters.</p>
+        <p>Add your first product to get started.</p>
         <button class="btn btn-primary" onclick="toggleAddForm()">
             <i class="fas fa-plus"></i> Add Product
         </button>
     </div>
-    <table id="productsTable" style="display: none;">
-        <thead>
-            <tr>
-                <th>S.N</th>
-                <th>Product Name</th>
-                <th>Barcode No</th>
-                <th>Price</th>
-                <th>Actual Stock</th>
-                <th>Today's Stock</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="productsBody">
-            <!-- Products will be loaded here -->
-        </tbody>
-    </table>
+
+    <!-- Desktop Table -->
+    <div class="desktop-table-wrap">
+        <table id="productsTable" style="display:none;">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Product</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Status</th>
+                    <th>Sell / Restock</th>
+                    <th>Min Stock</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="productsBody"></tbody>
+        </table>
+    </div>
+
+    <!-- Mobile Cards -->
+    <div class="mobile-products" id="mobileProducts" style="padding:12px;"></div>
+</div>
+
+<!-- Add Variant Modal -->
+<div id="addVariantModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-layer-group" style="color:#6366f1;margin-right:7px;"></i>Add Variant</h3>
+            <button class="close-btn" onclick="closeVariantModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="product-badge">
+                <i class="fas fa-box"></i>
+                <span id="variantProductName"></span>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Variant Type *</label>
+                    <select id="variantType">
+                        <option value="weight">⚖️ Weight</option>
+                        <option value="size">📐 Size</option>
+                        <option value="color">🎨 Color</option>
+                        <option value="flavor">🍓 Flavor</option>
+                        <option value="pack">📦 Pack Size</option>
+                        <option value="other">📌 Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Variant Value *</label>
+                    <input type="text" id="variantValue" placeholder="e.g. 80gm, XL, Red">
+                    <div class="form-hint">Specific value for this variant</div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Stock *</label>
+                    <input type="number" id="variantStock" min="0" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Min Stock</label>
+                    <input type="number" id="variantMinStock" min="0" value="5">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Cost Price (NPR)</label>
+                    <input type="number" id="variantCostPrice" min="0" step="0.01" placeholder="Optional">
+                    <div class="form-hint">Blank = use product price</div>
+                </div>
+                <div class="form-group">
+                    <label>Selling Price (NPR)</label>
+                    <input type="number" id="variantSellingPrice" min="0" step="0.01" placeholder="Optional">
+                    <div class="form-hint">Blank = use product price</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Barcode</label>
+                <input type="text" id="variantBarcode" placeholder="Optional">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeVariantModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitAddVariant()">
+                <i class="fas fa-plus"></i> Add Variant
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Google Sheets Modal -->
+<div id="googleSheetsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-cloud" style="color:#0891b2;margin-right:7px;"></i>Google Sheets</h3>
+            <button class="close-btn" onclick="closeGoogleSheetsModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="warning-box">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Share your Google Sheet with <strong>"Anyone with the link can edit"</strong> for write access.</span>
+            </div>
+            <div class="form-group">
+                <label>Google Sheet ID</label>
+                <input type="text" id="sheetId" placeholder="Paste your Sheet ID here">
+                <div class="form-hint">From URL: docs.google.com/spreadsheets/d/<strong>THIS_PART</strong>/edit</div>
+            </div>
+            <div class="form-group" style="margin-top:13px;">
+                <label>Google API Key</label>
+                <input type="password" id="apiKey" placeholder="Enter your API Key">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeGoogleSheetsModal()">Cancel</button>
+            <button class="btn btn-secondary" onclick="importFromGoogleSheets()">
+                <i class="fas fa-upload"></i> Import
+            </button>
+            <button class="btn btn-primary" onclick="exportToGoogleSheets()">
+                <i class="fas fa-download"></i> Export
+            </button>
+        </div>
+    </div>
 </div>
 
 {% block extra_js %}
 <script>
-// ===== State =====
+var products = [];
+var expandedRows = new Set();
+var currentVariantProductId = null;
+var googleSheetsConfig = window.googleSheetsConfig || { sheetId: '', apiKey: '' };
 
-// ===== Initialize Page =====
+// ===== Initialize =====
 document.addEventListener('DOMContentLoaded', () => {
     loadProducts();
     loadCategoriesForDatalist();
@@ -168,21 +632,21 @@ async function loadProducts() {
     const spinner = document.getElementById('loadingSpinner');
     const emptyState = document.getElementById('emptyState');
     const table = document.getElementById('productsTable');
+    const mobileProducts = document.getElementById('mobileProducts');
 
     spinner.style.display = 'flex';
     emptyState.style.display = 'none';
     table.style.display = 'none';
+    mobileProducts.innerHTML = '';
 
     try {
         const params = getQueryParams();
         const data = await API.getProducts(params.search, params.category);
         products = data;
-
         renderProducts(data);
+        renderMobileProducts(data);
         updateSummaryCards(data);
-
         spinner.style.display = 'none';
-
         if (data.length === 0) {
             emptyState.style.display = 'block';
         } else {
@@ -194,86 +658,351 @@ async function loadProducts() {
     }
 }
 
-// ===== Render Products Table =====
+// ===== Render Desktop Table =====
 function renderProducts(productsList) {
     const tbody = document.getElementById('productsBody');
     const resultCount = document.getElementById('resultCount');
-
     tbody.innerHTML = '';
-    resultCount.textContent = `Showing ${productsList.length} product(s)`;
+    resultCount.textContent = `${productsList.length} product(s)`;
 
     productsList.forEach((product, index) => {
-        const stockClass = product.status === 'Low' ? 'low' : '';
-        const rowClass = product.status === 'Low' ? 'low-stock' : '';
+        const isLow = product.status === 'Low';
+        const isExpanded = expandedRows.has(product.id);
 
         const row = document.createElement('tr');
-        row.className = rowClass;
+        row.className = isLow ? 'low-stock' : '';
         row.id = `product-${product.id}`;
 
+        const expandBtn = product.has_variants
+            ? `<button class="btn-expand" onclick="toggleVariants(${product.id})" id="expand-btn-${product.id}">
+                <i class="fas fa-${isExpanded ? 'chevron-up' : 'chevron-down'}"></i>
+               </button>`
+            : `<span style="width:24px;display:inline-block;"></span>`;
+
+        const variantBadge = product.has_variants
+            ? `<span class="has-variants-badge"><i class="fas fa-layer-group"></i> ${product.variants.length}</span>`
+            : '';
+
         row.innerHTML = `
-            <td>${index + 1}</td>
-            <td><strong>${escapeHtml(product.name)}</strong></td>
-            <td>${product.barcode || '-'}</td>
-            <td>${formatCurrency(product.selling_price)}</td>
-            <td class="stock-value ${stockClass}">${product.stock}</td>
-            <td>${product.todays_stock !== undefined ? product.todays_stock : product.stock}</td>
+            <td style="color:#94a3b8;font-weight:600;font-size:12px;">${index + 1}</td>
+            <td>
+                <div style="display:flex;align-items:center;gap:7px;">
+                    ${expandBtn}
+                    <div>
+                        <div style="font-weight:600;color:#1e293b;">${escapeHtml(product.name)}</div>
+                        ${product.category ? `<div style="font-size:11px;color:#94a3b8;">${escapeHtml(product.category)}</div>` : ''}
+                    </div>
+                    ${variantBadge}
+                </div>
+            </td>
+            <td style="font-weight:600;">${formatCurrency(product.selling_price)}</td>
+            <td>
+                <span class="stock-value ${isLow ? 'low' : ''}">${product.stock}</span>
+            </td>
             <td>${getStatusBadge(product.status)}</td>
             <td>
-                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                    <div class="inline-edit">
-                        <input type="number" id="minstock-${product.id}" value="${product.min_stock}" min="0" style="width: 60px;">
-                        <button class="btn btn-sm btn-primary" onclick="updateMinStock(${product.id})" title="Update Min Stock">
-                            <i class="fas fa-check"></i>
-                        </button>
-                    </div>
-                    <div class="transaction-input">
-                        <input type="number" id="sell-qty-${product.id}" placeholder="Qty" min="1" style="width: 50px;">
-                        <button class="btn btn-sm btn-success" onclick="sellProduct(${product.id})" title="Sell">
-                            <i class="fas fa-shopping-cart"></i>
-                        </button>
-                    </div>
-                    <div class="transaction-input">
-                        <input type="number" id="restock-qty-${product.id}" placeholder="Qty" min="1" style="width: 50px;">
-                        <button class="btn btn-sm btn-primary" onclick="restockProduct(${product.id})" title="Restock">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
+                <div class="action-group">
+                    <input class="qty-input" type="number" id="sell-qty-${product.id}" placeholder="Qty" min="1">
+                    <button class="btn btn-sm btn-success" onclick="sellProduct(${product.id})" title="Sell">
+                        <i class="fas fa-shopping-cart"></i> Sell
+                    </button>
+                    <input class="qty-input" type="number" id="restock-qty-${product.id}" placeholder="Qty" min="1">
+                    <button class="btn btn-sm btn-primary" onclick="restockProduct(${product.id})" title="Restock">
+                        <i class="fas fa-plus"></i> Restock
+                    </button>
+                </div>
+            </td>
+            <td>
+                <div class="action-group">
+                    <input class="minstock-input" type="number" id="minstock-${product.id}" value="${product.min_stock}" min="0">
+                    <button class="btn btn-sm btn-ghost" onclick="updateMinStock(${product.id})" title="Update min stock">
+                        <i class="fas fa-check" style="color:#16a34a;"></i>
+                    </button>
+                </div>
+            </td>
+            <td>
+                <div class="action-group">
+                    <button class="btn btn-sm" style="background:#f5f3ff;color:#6366f1;border:1px solid #e0e7ff;"
+                            onclick="openAddVariantModal(${product.id}, '${escapeHtml(product.name)}')" title="Add variant">
+                        <i class="fas fa-layer-group"></i>
+                    </button>
                     <button class="btn btn-sm btn-icon" onclick="deleteProduct(${product.id})" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </td>
         `;
-
         tbody.appendChild(row);
+
+        if (product.has_variants) {
+            const variantRow = document.createElement('tr');
+            variantRow.className = 'variants-row';
+            variantRow.id = `variants-${product.id}`;
+            variantRow.style.display = isExpanded ? 'table-row' : 'none';
+            variantRow.innerHTML = `
+                <td colspan="8">
+                    <div class="variants-container">
+                        <div class="variants-header">
+                            <div class="variants-title">
+                                <i class="fas fa-layer-group"></i> Variants (${product.variants.length})
+                            </div>
+                        </div>
+                        ${renderVariantsTable(product)}
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(variantRow);
+        }
     });
 }
 
-// ===== Update Summary Cards =====
+// ===== Render Variants Table (Desktop) =====
+function renderVariantsTable(product) {
+    if (!product.variants || product.variants.length === 0) {
+        return '<p style="color:#94a3b8;font-size:12px;padding:6px 0;">No variants yet.</p>';
+    }
+
+    const rows = product.variants.map(v => `
+        <tr class="${v.status === 'Low' ? 'low-stock' : ''}">
+            <td>
+                <div class="action-group">
+                    <input class="qty-input" type="number" id="sell-variant-${v.id}" placeholder="Qty" min="1">
+                    <button class="btn btn-sm btn-success" onclick="sellVariant(${v.id}, ${product.id})">
+                        <i class="fas fa-shopping-cart"></i> Sell
+                    </button>
+                    <input class="qty-input" type="number" id="restock-variant-${v.id}" placeholder="Qty" min="1">
+                    <button class="btn btn-sm btn-primary" onclick="restockVariant(${v.id}, ${product.id})">
+                        <i class="fas fa-plus"></i> Restock
+                    </button>
+                </div>
+            </td>
+            <td><strong>${escapeHtml(v.variant_value)}</strong></td>
+            <td><span style="background:#e0e7ff;color:#4338ca;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;text-transform:capitalize;">${v.variant_type}</span></td>
+            <td style="font-family:monospace;font-size:11px;color:#94a3b8;">${v.barcode || '—'}</td>
+            <td style="font-weight:600;">${formatCurrency(v.effective_selling_price || product.selling_price)}</td>
+            <td><span class="stock-value ${v.status === 'Low' ? 'low' : ''}">${v.stock}</span></td>
+            <td>${getStatusBadge(v.status)}</td>
+            <td>
+                <div class="action-group">
+                    <input class="minstock-input" type="number" id="v-minstock-${v.id}" value="${v.min_stock}" min="0">
+                    <button class="btn btn-sm btn-ghost" onclick="updateVariantMinStock(${v.id})" title="Update min stock">
+                        <i class="fas fa-check" style="color:#16a34a;"></i>
+                    </button>
+                </div>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-icon" onclick="deleteVariant(${v.id}, ${product.id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+
+    return `
+        <table class="variants-table">
+            <thead>
+                <tr>
+                    <th>Sell / Restock</th>
+                    <th>Value</th><th>Type</th><th>Barcode</th>
+                    <th>Price</th><th>Stock</th><th>Status</th>
+                    <th>Min Stock</th><th></th>
+                </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+        </table>
+    `;
+}
+
+// ===== Render Mobile Cards =====
+function renderMobileProducts(productsList) {
+    const container = document.getElementById('mobileProducts');
+    container.innerHTML = '';
+
+    if (productsList.length === 0) return;
+
+    productsList.forEach(product => {
+        const isLow = product.status === 'Low';
+        const card = document.createElement('div');
+        card.className = `product-card ${isLow ? 'low-stock' : ''}`;
+        card.id = `mobile-product-${product.id}`;
+
+        const variantsHtml = product.has_variants ? `
+            <div class="card-variant-section">
+                <div class="card-variant-title">
+                    <i class="fas fa-layer-group"></i> Variants (${product.variants.length})
+                    <button class="btn btn-sm" style="background:#e0e7ff;color:#4338ca;margin-left:auto;"
+                            onclick="openAddVariantModal(${product.id}, '${escapeHtml(product.name)}')">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                </div>
+                ${product.variants.map(v => `
+                    <div class="variant-card">
+                        <div class="variant-card-header">
+                            <div>
+                                <span class="variant-card-name">${escapeHtml(v.variant_value)}</span>
+                                <span class="variant-card-type">${v.variant_type}</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                ${getStatusBadge(v.status)}
+                                <button class="btn btn-sm btn-icon" onclick="deleteVariant(${v.id}, ${product.id})" style="padding:4px 6px;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="variant-card-stats">
+                            <div>
+                                <label style="font-size:10px;color:#94a3b8;font-weight:600;text-transform:uppercase;">Stock</label>
+                                <span style="font-size:14px;font-weight:700;color:${v.status === 'Low' ? '#dc2626' : '#1e293b'};">${v.stock}</span>
+                            </div>
+                            <div>
+                                <label style="font-size:10px;color:#94a3b8;font-weight:600;text-transform:uppercase;">Price</label>
+                                <span style="font-size:13px;font-weight:700;color:#1e293b;">${formatCurrency(v.effective_selling_price || product.selling_price)}</span>
+                            </div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:6px;">
+                            <div class="action-row">
+                                <label>Sell</label>
+                                <div class="action-row-inputs">
+                                    <input class="qty-input-mobile" type="number" id="m-sell-variant-${v.id}" placeholder="Qty" min="1">
+                                    <button class="btn btn-sm btn-success" onclick="sellVariant(${v.id}, ${product.id})">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="action-row">
+                                <label>Restock</label>
+                                <div class="action-row-inputs">
+                                    <input class="qty-input-mobile" type="number" id="m-restock-variant-${v.id}" placeholder="Qty" min="1">
+                                    <button class="btn btn-sm btn-primary" onclick="restockVariant(${v.id}, ${product.id})">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="action-row">
+                                <label>Min Stock</label>
+                                <div class="action-row-inputs">
+                                    <input class="qty-input-mobile" type="number" id="m-v-minstock-${v.id}" value="${v.min_stock}" min="0">
+                                    <button class="btn btn-sm btn-ghost" onclick="updateVariantMinStockMobile(${v.id})">
+                                        <i class="fas fa-check" style="color:#16a34a;"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        ` : `
+            <div style="margin-top:8px;">
+                <button class="btn btn-sm" style="background:#f5f3ff;color:#6366f1;border:1px solid #e0e7ff;width:100%;"
+                        onclick="openAddVariantModal(${product.id}, '${escapeHtml(product.name)}')">
+                    <i class="fas fa-layer-group"></i> Add Variant
+                </button>
+            </div>
+        `;
+
+        card.innerHTML = `
+            <div class="product-card-header">
+                <div>
+                    <div class="product-card-name">${escapeHtml(product.name)}</div>
+                    ${product.category ? `<div class="product-card-category">${escapeHtml(product.category)}</div>` : ''}
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    ${getStatusBadge(product.status)}
+                    <button class="btn btn-sm btn-icon" onclick="deleteProduct(${product.id})" style="padding:4px 6px;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="product-card-stats">
+                <div class="product-card-stat">
+                    <label>Stock</label>
+                    <span style="color:${isLow ? '#dc2626' : '#1e293b'};">${product.stock}</span>
+                </div>
+                <div class="product-card-stat">
+                    <label>Price</label>
+                    <span>${formatCurrency(product.selling_price)}</span>
+                </div>
+                <div class="product-card-stat">
+                    <label>Barcode</label>
+                    <span style="font-size:11px;">${product.barcode || '—'}</span>
+                </div>
+            </div>
+            <div class="product-card-actions">
+                <div class="action-row">
+                    <label>Sell</label>
+                    <div class="action-row-inputs">
+                        <input class="qty-input-mobile" type="number" id="m-sell-qty-${product.id}" placeholder="Qty" min="1">
+                        <button class="btn btn-sm btn-success" onclick="sellProductMobile(${product.id})">
+                            <i class="fas fa-shopping-cart"></i> Sell
+                        </button>
+                    </div>
+                </div>
+                <div class="action-row">
+                    <label>Restock</label>
+                    <div class="action-row-inputs">
+                        <input class="qty-input-mobile" type="number" id="m-restock-qty-${product.id}" placeholder="Qty" min="1">
+                        <button class="btn btn-sm btn-primary" onclick="restockProductMobile(${product.id})">
+                            <i class="fas fa-plus"></i> Restock
+                        </button>
+                    </div>
+                </div>
+                <div class="card-divider"></div>
+                <div class="action-row">
+                    <label>Min Stock</label>
+                    <div class="action-row-inputs">
+                        <input class="qty-input-mobile" type="number" id="m-minstock-${product.id}" value="${product.min_stock}" min="0">
+                        <button class="btn btn-sm btn-ghost" onclick="updateMinStockMobile(${product.id})">
+                            <i class="fas fa-check" style="color:#16a34a;"></i> Update
+                        </button>
+                    </div>
+                </div>
+            </div>
+            ${variantsHtml}
+        `;
+        container.appendChild(card);
+    });
+}
+
+// ===== Toggle Variants =====
+function toggleVariants(productId) {
+    const variantRow = document.getElementById(`variants-${productId}`);
+    const btn = document.getElementById(`expand-btn-${productId}`);
+    const icon = btn.querySelector('i');
+    if (expandedRows.has(productId)) {
+        expandedRows.delete(productId);
+        variantRow.style.display = 'none';
+        icon.className = 'fas fa-chevron-down';
+    } else {
+        expandedRows.add(productId);
+        variantRow.style.display = 'table-row';
+        icon.className = 'fas fa-chevron-up';
+    }
+}
+
+// ===== Summary Cards =====
 function updateSummaryCards(productsList) {
     const totalProducts = productsList.length;
     const totalUnits = productsList.reduce((sum, p) => sum + p.stock, 0);
     const totalValue = productsList.reduce((sum, p) => sum + (p.stock * p.cost_price), 0);
     const lowStockCount = productsList.filter(p => p.status === 'Low').length;
-
     document.getElementById('totalProducts').textContent = formatNumber(totalProducts);
     document.getElementById('totalUnits').textContent = formatNumber(totalUnits);
     document.getElementById('totalValue').textContent = formatCurrency(totalValue);
     document.getElementById('lowStockCount').textContent = lowStockCount;
 }
 
-// ===== Add Product Form =====
+// ===== Add Product =====
 function toggleAddForm() {
     const form = document.getElementById('addProductForm');
-    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    const hidden = form.style.display === 'none';
+    form.style.display = hidden ? 'block' : 'none';
+    if (hidden) form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 async function handleAddProduct(event) {
     event.preventDefault();
-
     const form = document.getElementById('productForm');
     const formData = new FormData(form);
-
     const productData = {
         name: formData.get('name'),
         category: formData.get('category') || '',
@@ -283,10 +1012,9 @@ async function handleAddProduct(event) {
         cost_price: parseFloat(formData.get('cost_price')),
         selling_price: parseFloat(formData.get('selling_price'))
     };
-
     try {
         await API.createProduct(productData);
-        showToast('Product added successfully!');
+        showToast('Product added!');
         form.reset();
         toggleAddForm();
         loadProducts();
@@ -311,88 +1039,323 @@ async function loadCategoriesForDatalist() {
     }
 }
 
-// ===== Product Actions =====
-async function updateMinStock(productId) {
-    const input = document.getElementById(`minstock-${productId}`);
-    const newMinStock = parseInt(input.value);
+// ===== Variant Modal =====
+function openAddVariantModal(productId, productName) {
+    currentVariantProductId = productId;
+    document.getElementById('variantProductName').textContent = productName;
+    document.getElementById('variantType').value = 'weight';
+    document.getElementById('variantValue').value = '';
+    document.getElementById('variantStock').value = '0';
+    document.getElementById('variantMinStock').value = '5';
+    document.getElementById('variantCostPrice').value = '';
+    document.getElementById('variantSellingPrice').value = '';
+    document.getElementById('variantBarcode').value = '';
+    document.getElementById('addVariantModal').classList.add('show');
+}
 
-    if (isNaN(newMinStock) || newMinStock < 0) {
-        showToast('Invalid minimum stock value', 'error');
-        return;
-    }
+function closeVariantModal() {
+    document.getElementById('addVariantModal').classList.remove('show');
+    currentVariantProductId = null;
+}
 
+async function submitAddVariant() {
+    if (!currentVariantProductId) return;
+    const variantValue = document.getElementById('variantValue').value.trim();
+    if (!variantValue) { showToast('Please enter a variant value', 'error'); return; }
+    const costPrice = document.getElementById('variantCostPrice').value;
+    const sellingPrice = document.getElementById('variantSellingPrice').value;
+    const variantData = {
+        product: currentVariantProductId,
+        variant_type: document.getElementById('variantType').value,
+        variant_value: variantValue,
+        stock: parseInt(document.getElementById('variantStock').value) || 0,
+        min_stock: parseInt(document.getElementById('variantMinStock').value) || 5,
+        cost_price: costPrice ? parseFloat(costPrice) : null,
+        selling_price: sellingPrice ? parseFloat(sellingPrice) : null,
+        barcode: document.getElementById('variantBarcode').value.trim() || '',
+    };
     try {
-        const product = products.find(p => p.id === productId);
-        await API.updateProduct(productId, { ...product, min_stock: newMinStock });
-        showToast('Minimum stock updated!');
+        const pid = currentVariantProductId;
+        await API.createVariant(variantData);
+        showToast('Variant added!');
+        closeVariantModal();
+        expandedRows.add(pid);
         loadProducts();
     } catch (error) {
-        showToast('Failed to update: ' + error.message, 'error');
+        showToast('Failed to add variant: ' + error.message, 'error');
     }
+}
+
+// ===== Product Actions (Desktop) =====
+async function updateMinStock(productId) {
+    const input = document.getElementById(`minstock-${productId}`);
+    const val = parseInt(input.value);
+    if (isNaN(val) || val < 0) { showToast('Invalid value', 'error'); return; }
+    try {
+        const product = products.find(p => p.id === productId);
+        await API.updateProduct(productId, { ...product, min_stock: val });
+        showToast('Min stock updated!');
+        loadProducts();
+    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
 }
 
 async function sellProduct(productId) {
     const input = document.getElementById(`sell-qty-${productId}`);
     const quantity = parseInt(input.value);
-
-    if (!quantity || quantity <= 0) {
-        showToast('Please enter a valid quantity', 'error');
-        return;
-    }
-
+    if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
     try {
         await API.sellProduct(productId, quantity);
-        showToast('Sale recorded successfully!');
+        showToast('Sale recorded!');
         input.value = '';
         loadProducts();
-    } catch (error) {
-        showToast('Failed to record sale: ' + error.message, 'error');
-    }
+    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
 }
 
 async function restockProduct(productId) {
     const input = document.getElementById(`restock-qty-${productId}`);
     const quantity = parseInt(input.value);
-
-    if (!quantity || quantity <= 0) {
-        showToast('Please enter a valid quantity', 'error');
-        return;
-    }
-
+    if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
     try {
         await API.restockProduct(productId, quantity);
-        showToast('Product restocked successfully!');
+        showToast('Restocked!');
         input.value = '';
         loadProducts();
-    } catch (error) {
-        showToast('Failed to restock: ' + error.message, 'error');
-    }
+    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
 }
 
 async function deleteProduct(productId) {
-    if (!confirm('Are you sure you want to delete this product?')) return;
-
+    if (!confirm('Delete this product and all its variants?')) return;
     try {
         await API.deleteProduct(productId);
-        showToast('Product deleted successfully!');
+        showToast('Product deleted!');
         loadProducts();
+    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+}
+
+// ===== Product Actions (Mobile) =====
+async function sellProductMobile(productId) {
+    const input = document.getElementById(`m-sell-qty-${productId}`);
+    const quantity = parseInt(input.value);
+    if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
+    try {
+        await API.sellProduct(productId, quantity);
+        showToast('Sale recorded!');
+        input.value = '';
+        loadProducts();
+    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+}
+
+async function restockProductMobile(productId) {
+    const input = document.getElementById(`m-restock-qty-${productId}`);
+    const quantity = parseInt(input.value);
+    if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
+    try {
+        await API.restockProduct(productId, quantity);
+        showToast('Restocked!');
+        input.value = '';
+        loadProducts();
+    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+}
+
+async function updateMinStockMobile(productId) {
+    const input = document.getElementById(`m-minstock-${productId}`);
+    const val = parseInt(input.value);
+    if (isNaN(val) || val < 0) { showToast('Invalid value', 'error'); return; }
+    try {
+        const product = products.find(p => p.id === productId);
+        await API.updateProduct(productId, { ...product, min_stock: val });
+        showToast('Min stock updated!');
+        loadProducts();
+    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+}
+
+// ===== Variant Actions =====
+async function updateVariantMinStock(variantId) {
+    const input = document.getElementById(`v-minstock-${variantId}`);
+    const val = parseInt(input.value);
+    if (isNaN(val) || val < 0) { showToast('Invalid value', 'error'); return; }
+    try {
+        await API.updateVariant(variantId, { min_stock: val });
+        showToast('Variant min stock updated!');
+        loadProducts();
+    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+}
+
+async function updateVariantMinStockMobile(variantId) {
+    const input = document.getElementById(`m-v-minstock-${variantId}`);
+    const val = parseInt(input.value);
+    if (isNaN(val) || val < 0) { showToast('Invalid value', 'error'); return; }
+    try {
+        await API.updateVariant(variantId, { min_stock: val });
+        showToast('Variant min stock updated!');
+        loadProducts();
+    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+}
+
+async function sellVariant(variantId, productId) {
+    // Try desktop input first, then mobile
+    const input = document.getElementById(`sell-variant-${variantId}`)
+                || document.getElementById(`m-sell-variant-${variantId}`);
+    const quantity = parseInt(input ? input.value : 0);
+    if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
+    try {
+        await API.sellVariant(variantId, quantity);
+        showToast('Variant sale recorded!');
+        if (input) input.value = '';
+        expandedRows.add(productId);
+        loadProducts();
+    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+}
+
+async function restockVariant(variantId, productId) {
+    const input = document.getElementById(`restock-variant-${variantId}`)
+                || document.getElementById(`m-restock-variant-${variantId}`);
+    const quantity = parseInt(input ? input.value : 0);
+    if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
+    try {
+        await API.restockVariant(variantId, quantity);
+        showToast('Variant restocked!');
+        if (input) input.value = '';
+        expandedRows.add(productId);
+        loadProducts();
+    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+}
+
+async function deleteVariant(variantId, productId) {
+    if (!confirm('Delete this variant?')) return;
+    try {
+        await API.deleteVariant(variantId);
+        showToast('Variant deleted!');
+        expandedRows.add(productId);
+        loadProducts();
+    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+}
+
+// ===== Excel Export (with variants) =====
+async function downloadExcel() {
+    try {
+        showToast('Preparing Excel...', 'info');
+        if (!products || products.length === 0) {
+            showToast('No products to export', 'error');
+            return;
+        }
+
+        const wb = XLSX.utils.book_new();
+
+        // ===== Sheet 1: Products =====
+        const productRows = [
+            ['S.N', 'Product Name', 'Category', 'Barcode', 'Stock', 'Min Stock', 'Cost Price', 'Selling Price', 'Status', 'Variants Count']
+        ];
+        products.forEach((p, i) => {
+            productRows.push([
+                i + 1,
+                p.name,
+                p.category || '',
+                p.barcode || '',
+                p.stock,
+                p.min_stock,
+                parseFloat(p.cost_price),
+                parseFloat(p.selling_price),
+                p.status,
+                p.variants ? p.variants.length : 0
+            ]);
+        });
+        const ws1 = XLSX.utils.aoa_to_sheet(productRows);
+        ws1['!cols'] = [
+            {wch:5},{wch:28},{wch:15},{wch:14},{wch:8},
+            {wch:10},{wch:12},{wch:13},{wch:8},{wch:14}
+        ];
+        XLSX.utils.book_append_sheet(wb, ws1, 'Products');
+
+        // ===== Sheet 2: Variants =====
+        const variantRows = [
+            ['S.N', 'Product Name', 'Variant Value', 'Variant Type', 'Barcode', 'Stock', 'Min Stock', 'Cost Price', 'Selling Price', 'Status']
+        ];
+        let sn = 1;
+        products.forEach(p => {
+            if (p.variants && p.variants.length > 0) {
+                p.variants.forEach(v => {
+                    variantRows.push([
+                        sn++,
+                        p.name,
+                        v.variant_value,
+                        v.variant_type,
+                        v.barcode || '',
+                        v.stock,
+                        v.min_stock,
+                        v.cost_price ? parseFloat(v.cost_price) : parseFloat(p.cost_price),
+                        v.selling_price ? parseFloat(v.selling_price) : parseFloat(p.selling_price),
+                        v.status
+                    ]);
+                });
+            }
+        });
+
+        if (variantRows.length > 1) {
+            const ws2 = XLSX.utils.aoa_to_sheet(variantRows);
+            ws2['!cols'] = [
+                {wch:5},{wch:28},{wch:14},{wch:12},{wch:14},
+                {wch:8},{wch:10},{wch:12},{wch:13},{wch:8}
+            ];
+            XLSX.utils.book_append_sheet(wb, ws2, 'Variants');
+        }
+
+        // ===== Sheet 3: Combined View =====
+        const combinedRows = [
+            ['S.N', 'Product Name', 'Variant', 'Type', 'Category', 'Barcode', 'Stock', 'Min Stock', 'Selling Price', 'Status']
+        ];
+        let csn = 1;
+        products.forEach(p => {
+            if (p.variants && p.variants.length > 0) {
+                p.variants.forEach(v => {
+                    combinedRows.push([
+                        csn++,
+                        p.name,
+                        v.variant_value,
+                        v.variant_type,
+                        p.category || '',
+                        v.barcode || p.barcode || '',
+                        v.stock,
+                        v.min_stock,
+                        v.selling_price ? parseFloat(v.selling_price) : parseFloat(p.selling_price),
+                        v.status
+                    ]);
+                });
+            } else {
+                combinedRows.push([
+                    csn++,
+                    p.name, '—', '—',
+                    p.category || '',
+                    p.barcode || '',
+                    p.stock,
+                    p.min_stock,
+                    parseFloat(p.selling_price),
+                    p.status
+                ]);
+            }
+        });
+        const ws3 = XLSX.utils.aoa_to_sheet(combinedRows);
+        ws3['!cols'] = [
+            {wch:5},{wch:28},{wch:14},{wch:10},{wch:14},
+            {wch:14},{wch:8},{wch:10},{wch:13},{wch:8}
+        ];
+        XLSX.utils.book_append_sheet(wb, ws3, 'Combined');
+
+        const date = new Date().toISOString().slice(0,10).replace(/-/g,'');
+        XLSX.writeFile(wb, `Stock_Report_${date}.xlsx`);
+        showToast('Excel downloaded!', 'success');
     } catch (error) {
-        showToast('Failed to delete product: ' + error.message, 'error');
+        showToast('Export failed: ' + error.message, 'error');
     }
 }
 
-// ===== Search Handler =====
-function handleSearch(search, category) {
-    loadProducts();
-}
+// ===== Search =====
+function handleSearch(search, category) { loadProducts(); }
 
-// ===== Mobile Search =====
 function mobileSearch() {
-    const searchInput = document.getElementById('mobileSearchInput');
-    const categoryFilter = document.getElementById('mobileCategoryFilter');
-    if (searchInput && typeof performSearch === 'function') {
-        performSearch(searchInput.value, categoryFilter.value);
-    }
+    const s = document.getElementById('mobileSearchInput');
+    const c = document.getElementById('mobileCategoryFilter');
+    if (s && typeof performSearch === 'function') performSearch(s.value, c.value);
 }
 
 // ===== Utility =====
@@ -402,77 +1365,23 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// ===== Excel Export =====
-async function downloadExcel() {
-    try {
-        showToast('Downloading Excel file...', 'info');
-        await API.exportToExcel();
-        showToast('Excel file downloaded!', 'success');
-    } catch (error) {
-        showToast('Failed to download: ' + error.message, 'error');
-    }
-}
-
 // ===== Google Sheets =====
-let googleSheetsConfig = { sheetId: '', apiKey: '' };
-
 function openGoogleSheetsModal() {
     const saved = localStorage.getItem('googleSheetsConfig');
     if (saved) googleSheetsConfig = JSON.parse(saved);
-
-    let modal = document.getElementById('googleSheetsModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'googleSheetsModal';
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Google Sheets Integration</h3>
-                    <span class="close" onclick="closeGoogleSheetsModal()">&times;</span>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="sheetId">Google Sheet ID</label>
-                        <input type="text" id="sheetId" placeholder="e.g., 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms">
-                        <small style="color: var(--text-secondary);">Find this in your Google Sheet URL</small>
-                    </div>
-                    <div class="form-group" style="margin-top:12px;">
-                        <label for="apiKey">Google API Key</label>
-                        <input type="password" id="apiKey" placeholder="Enter your API Key">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn" onclick="closeGoogleSheetsModal()">Cancel</button>
-                    <button class="btn btn-secondary" onclick="importFromGoogleSheets()">
-                        <i class="fas fa-upload"></i> Import
-                    </button>
-                    <button class="btn btn-primary" onclick="exportToGoogleSheets()">
-                        <i class="fas fa-download"></i> Export
-                    </button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
-
     document.getElementById('sheetId').value = googleSheetsConfig.sheetId || '';
     document.getElementById('apiKey').value = googleSheetsConfig.apiKey || '';
-    modal.style.display = 'block';
+    document.getElementById('googleSheetsModal').classList.add('show');
 }
 
 function closeGoogleSheetsModal() {
-    const modal = document.getElementById('googleSheetsModal');
-    if (modal) modal.style.display = 'none';
+    document.getElementById('googleSheetsModal').classList.remove('show');
 }
 
 function saveGoogleSheetsConfig() {
     const sheetId = document.getElementById('sheetId').value.trim();
     const apiKey = document.getElementById('apiKey').value.trim();
-    if (!sheetId || !apiKey) {
-        showToast('Please enter both Sheet ID and API Key', 'error');
-        return false;
-    }
+    if (!sheetId || !apiKey) { showToast('Enter both Sheet ID and API Key', 'error'); return false; }
     googleSheetsConfig = { sheetId, apiKey };
     localStorage.setItem('googleSheetsConfig', JSON.stringify(googleSheetsConfig));
     return true;
@@ -481,36 +1390,55 @@ function saveGoogleSheetsConfig() {
 async function exportToGoogleSheets() {
     if (!saveGoogleSheetsConfig()) return;
     try {
-        showToast('Syncing to Google Sheets...', 'info');
+        showToast('Syncing...', 'info');
         const result = await API.syncToGoogleSheets(googleSheetsConfig.sheetId, googleSheetsConfig.apiKey);
-        showToast(result.message || 'Synced successfully!', 'success');
+        showToast(result.message || 'Synced!', 'success');
         closeGoogleSheetsModal();
     } catch (error) {
-        showToast('Export failed: ' + error.message, 'error');
+        const e = error.message || String(error);
+        showToast(e.includes('403') ? 'Permission denied! Enable sharing.' : 'Export failed: ' + e, 'error');
     }
 }
 
 async function importFromGoogleSheets() {
     if (!saveGoogleSheetsConfig()) return;
     try {
-        showToast('Importing from Google Sheets...', 'info');
+        showToast('Importing...', 'info');
         const result = await API.importFromGoogleSheets(googleSheetsConfig.sheetId, googleSheetsConfig.apiKey);
-        showToast(result.message || 'Imported successfully!', 'success');
+        showToast(result.message || 'Imported!', 'success');
         closeGoogleSheetsModal();
         loadProducts();
     } catch (error) {
-        showToast('Import failed: ' + error.message, 'error');
+        const e = error.message || String(error);
+        showToast(e.includes('403') ? 'Permission denied! Enable sharing.' : 'Import failed: ' + e, 'error');
     }
 }
 
-// Make functions globally available
+// Close modals on backdrop click
+window.addEventListener('click', function(e) {
+    if (e.target === document.getElementById('addVariantModal')) closeVariantModal();
+    if (e.target === document.getElementById('googleSheetsModal')) closeGoogleSheetsModal();
+});
+
+// Globals
 window.handleSearch = handleSearch;
 window.downloadExcel = downloadExcel;
 window.openGoogleSheetsModal = openGoogleSheetsModal;
 window.closeGoogleSheetsModal = closeGoogleSheetsModal;
 window.exportToGoogleSheets = exportToGoogleSheets;
 window.importFromGoogleSheets = importFromGoogleSheets;
+window.toggleVariants = toggleVariants;
+window.openAddVariantModal = openAddVariantModal;
+window.closeVariantModal = closeVariantModal;
+window.submitAddVariant = submitAddVariant;
+window.sellVariant = sellVariant;
+window.restockVariant = restockVariant;
+window.deleteVariant = deleteVariant;
+window.updateVariantMinStock = updateVariantMinStock;
+window.updateVariantMinStockMobile = updateVariantMinStockMobile;
+window.sellProductMobile = sellProductMobile;
+window.restockProductMobile = restockProductMobile;
+window.updateMinStockMobile = updateMinStockMobile;
 </script>
 {% endblock %}
-
 {% endblock %}
