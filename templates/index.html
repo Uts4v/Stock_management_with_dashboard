@@ -697,7 +697,19 @@ function renderProducts(productsList) {
             </td>
             <td style="font-weight:600;">${formatCurrency(product.selling_price)}</td>
             <td>
-                <span class="stock-value ${isLow ? 'low' : ''}">${product.stock}</span>
+                <div class="stock-edit-group" style="display:flex;align-items:center;gap:4px;">
+                    <span class="stock-value ${isLow ? 'low' : ''}" id="stock-display-${product.id}">${product.stock}</span>
+                    <input class="stock-edit-input" type="number" id="stock-edit-${product.id}" value="${product.stock}" min="0" style="display:none;width:55px;padding:4px 5px;border:1.5px solid #e2e8f0;border-radius:5px;font-size:12px;text-align:center;">
+                    <button class="btn btn-sm btn-ghost" id="stock-edit-btn-${product.id}" onclick="showStockEdit(${product.id})" title="Edit stock" style="padding:4px 6px;">
+                        <i class="fas fa-pen" style="font-size:10px;color:#64748b;"></i>
+                    </button>
+                    <button class="btn btn-sm btn-success" id="stock-save-btn-${product.id}" onclick="saveStockEdit(${product.id})" title="Save" style="display:none;padding:4px 6px;">
+                        <i class="fas fa-check" style="font-size:10px;"></i>
+                    </button>
+                    <button class="btn btn-sm btn-ghost" id="stock-cancel-btn-${product.id}" onclick="cancelStockEdit(${product.id})" title="Cancel" style="display:none;padding:4px 6px;">
+                        <i class="fas fa-times" style="font-size:10px;color:#64748b;"></i>
+                    </button>
+                </div>
             </td>
             <td>${getStatusBadge(product.status)}</td>
             <td>
@@ -780,7 +792,21 @@ function renderVariantsTable(product) {
             <td><span style="background:#e0e7ff;color:#4338ca;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;text-transform:capitalize;">${v.variant_type}</span></td>
             <td style="font-family:monospace;font-size:11px;color:#94a3b8;">${v.barcode || '—'}</td>
             <td style="font-weight:600;">${formatCurrency(v.effective_selling_price || product.selling_price)}</td>
-            <td><span class="stock-value ${v.status === 'Low' ? 'low' : ''}">${v.stock}</span></td>
+            <td>
+                <div class="stock-edit-group" style="display:flex;align-items:center;gap:3px;">
+                    <span class="stock-value ${v.status === 'Low' ? 'low' : ''}" id="vstock-display-${v.id}">${v.stock}</span>
+                    <input class="stock-edit-input" type="number" id="vstock-edit-${v.id}" value="${v.stock}" min="0" style="display:none;width:50px;padding:3px 4px;border:1.5px solid #e2e8f0;border-radius:4px;font-size:11px;text-align:center;">
+                    <button class="btn btn-sm btn-ghost" id="vstock-edit-btn-${v.id}" onclick="showVariantStockEdit(${v.id})" title="Edit stock" style="padding:3px 5px;">
+                        <i class="fas fa-pen" style="font-size:9px;color:#64748b;"></i>
+                    </button>
+                    <button class="btn btn-sm btn-success" id="vstock-save-btn-${v.id}" onclick="saveVariantStockEdit(${v.id})" title="Save" style="display:none;padding:3px 5px;">
+                        <i class="fas fa-check" style="font-size:9px;"></i>
+                    </button>
+                    <button class="btn btn-sm btn-ghost" id="vstock-cancel-btn-${v.id}" onclick="cancelVariantStockEdit(${v.id})" title="Cancel" style="display:none;padding:3px 5px;">
+                        <i class="fas fa-times" style="font-size:9px;color:#64748b;"></i>
+                    </button>
+                </div>
+            </td>
             <td>${getStatusBadge(v.status)}</td>
             <td>
                 <div class="action-group">
@@ -1099,6 +1125,61 @@ async function updateMinStock(productId) {
     } catch (error) { showToast('Failed: ' + error.message, 'error'); }
 }
 
+// ===== Inline Stock Editing =====
+let originalStockValues = {};
+
+function showStockEdit(productId) {
+    const display = document.getElementById(`stock-display-${productId}`);
+    const input = document.getElementById(`stock-edit-${productId}`);
+    const editBtn = document.getElementById(`stock-edit-btn-${productId}`);
+    const saveBtn = document.getElementById(`stock-save-btn-${productId}`);
+    const cancelBtn = document.getElementById(`stock-cancel-btn-${productId}`);
+    
+    originalStockValues[productId] = display.textContent;
+    display.style.display = 'none';
+    input.style.display = 'inline-block';
+    input.value = display.textContent;
+    input.focus();
+    input.select();
+    editBtn.style.display = 'none';
+    saveBtn.style.display = 'inline-flex';
+    cancelBtn.style.display = 'inline-flex';
+}
+
+function cancelStockEdit(productId) {
+    const display = document.getElementById(`stock-display-${productId}`);
+    const input = document.getElementById(`stock-edit-${productId}`);
+    const editBtn = document.getElementById(`stock-edit-btn-${productId}`);
+    const saveBtn = document.getElementById(`stock-save-btn-${productId}`);
+    const cancelBtn = document.getElementById(`stock-cancel-btn-${productId}`);
+    
+    display.textContent = originalStockValues[productId] || display.textContent;
+    display.style.display = 'inline';
+    input.style.display = 'none';
+    editBtn.style.display = 'inline-flex';
+    saveBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+}
+
+async function saveStockEdit(productId) {
+    const input = document.getElementById(`stock-edit-${productId}`);
+    const newStock = parseInt(input.value);
+    
+    if (isNaN(newStock) || newStock < 0) {
+        showToast('Invalid stock value', 'error');
+        return;
+    }
+    
+    try {
+        const product = products.find(p => p.id === productId);
+        await API.updateProduct(productId, { ...product, stock: newStock });
+        showToast('Stock updated!');
+        loadProducts();
+    } catch (error) {
+        showToast('Failed to update stock: ' + error.message, 'error');
+    }
+}
+
 async function sellProduct(productId) {
     const input = document.getElementById(`sell-qty-${productId}`);
     const quantity = parseInt(input.value);
@@ -1190,6 +1271,60 @@ async function updateVariantMinStockMobile(variantId) {
         showToast('Variant min stock updated!');
         loadProducts();
     } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+}
+
+// ===== Inline Variant Stock Editing =====
+let originalVariantStockValues = {};
+
+function showVariantStockEdit(variantId) {
+    const display = document.getElementById(`vstock-display-${variantId}`);
+    const input = document.getElementById(`vstock-edit-${variantId}`);
+    const editBtn = document.getElementById(`vstock-edit-btn-${variantId}`);
+    const saveBtn = document.getElementById(`vstock-save-btn-${variantId}`);
+    const cancelBtn = document.getElementById(`vstock-cancel-btn-${variantId}`);
+    
+    originalVariantStockValues[variantId] = display.textContent;
+    display.style.display = 'none';
+    input.style.display = 'inline-block';
+    input.value = display.textContent;
+    input.focus();
+    input.select();
+    editBtn.style.display = 'none';
+    saveBtn.style.display = 'inline-flex';
+    cancelBtn.style.display = 'inline-flex';
+}
+
+function cancelVariantStockEdit(variantId) {
+    const display = document.getElementById(`vstock-display-${variantId}`);
+    const input = document.getElementById(`vstock-edit-${variantId}`);
+    const editBtn = document.getElementById(`vstock-edit-btn-${variantId}`);
+    const saveBtn = document.getElementById(`vstock-save-btn-${variantId}`);
+    const cancelBtn = document.getElementById(`vstock-cancel-btn-${variantId}`);
+    
+    display.textContent = originalVariantStockValues[variantId] || display.textContent;
+    display.style.display = 'inline';
+    input.style.display = 'none';
+    editBtn.style.display = 'inline-flex';
+    saveBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+}
+
+async function saveVariantStockEdit(variantId) {
+    const input = document.getElementById(`vstock-edit-${variantId}`);
+    const newStock = parseInt(input.value);
+    
+    if (isNaN(newStock) || newStock < 0) {
+        showToast('Invalid stock value', 'error');
+        return;
+    }
+    
+    try {
+        await API.updateVariantStock(variantId, newStock);
+        showToast('Variant stock updated!');
+        loadProducts();
+    } catch (error) {
+        showToast('Failed to update variant stock: ' + error.message, 'error');
+    }
 }
 
 async function sellVariant(variantId, productId) {
@@ -1436,6 +1571,12 @@ window.restockVariant = restockVariant;
 window.deleteVariant = deleteVariant;
 window.updateVariantMinStock = updateVariantMinStock;
 window.updateVariantMinStockMobile = updateVariantMinStockMobile;
+window.showStockEdit = showStockEdit;
+window.saveStockEdit = saveStockEdit;
+window.cancelStockEdit = cancelStockEdit;
+window.showVariantStockEdit = showVariantStockEdit;
+window.saveVariantStockEdit = saveVariantStockEdit;
+window.cancelVariantStockEdit = cancelVariantStockEdit;
 window.sellProductMobile = sellProductMobile;
 window.restockProductMobile = restockProductMobile;
 window.updateMinStockMobile = updateMinStockMobile;

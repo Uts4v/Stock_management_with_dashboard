@@ -223,6 +223,18 @@ const API = {
         });
     },
     
+    /**
+     * Update variant stock directly (set absolute value)
+     * @param {number} variantId - Variant ID
+     * @param {number} stock - New stock value
+     */
+    async updateVariantStock(variantId, stock) {
+        return this.request(`/variants/${variantId}/`, {
+            method: 'PATCH',
+            body: JSON.stringify({ stock: stock }),
+        });
+    },
+    
     // ===== Report Endpoints =====
     
     /**

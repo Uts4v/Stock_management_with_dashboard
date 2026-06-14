@@ -201,6 +201,22 @@ class ProductViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(f"Supabase sync error (update product): {e}")
 
+    def destroy(self, request, *args, **kwargs):
+        """Delete a product."""
+        if not settings.DEBUG:
+            # Production: Delete directly from Supabase
+            pk = kwargs.get('pk')
+            try:
+                delete_product(int(pk))
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Development: Use local SQLite
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def perform_destroy(self, instance):
         """Delete product from SQLite and sync to Supabase."""
         product_id = instance.id
@@ -435,6 +451,16 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         """Delete a variant, update product stock, sync to Supabase."""
+        if not settings.DEBUG:
+            # Production: Delete directly from Supabase
+            pk = kwargs.get('pk')
+            try:
+                delete_variant(int(pk))
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Development: Use local SQLite
         instance = self.get_object()
         product = instance.product
         variant_id = instance.id
