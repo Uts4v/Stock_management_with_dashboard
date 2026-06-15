@@ -14,6 +14,7 @@
         <i class="fas fa-search"></i>
     </button>
 </div>
+
 <!-- In your navbar/header -->
 <div class="user-profile">
     <span>👤 {{ request.user.username }}</span>
@@ -56,7 +57,6 @@
             <p>No products are currently below their minimum stock level.</p>
         </div>
         <div id="lowStockList" class="low-stock-list" style="display: none; padding: 16px;">
-            <!-- Low stock items will be loaded here -->
         </div>
     </div>
 
@@ -65,118 +65,166 @@
         <div class="table-header">
             <span class="table-title">Detailed View</span>
         </div>
-        <table id="lowStockTable" style="display: none;">
-            <thead>
-                <tr>
-                    <th>S.N</th>
-                    <th>Product Name</th>
-                    <th>Category</th>
-                    <th>Barcode No</th>
-                    <th>Price</th>
-                    <th>Current Stock</th>
-                    <th>Min Stock</th>
-                    <th>Shortage</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="lowStockTableBody">
-                <!-- Low stock products will be loaded here -->
-            </tbody>
-        </table>
+        <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+            <table id="lowStockTable" style="display: none; min-width: 700px; width: 100%;">
+                <thead>
+                    <tr>
+                        <th>S.N</th>
+                        <th>Product Name</th>
+                        <th>Category</th>
+                        <th>Barcode</th>
+                        <th>Price</th>
+                        <th>Current Stock</th>
+                        <th>Min Stock</th>
+                        <th>Shortage</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="lowStockTableBody"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <script>
-// ===== State =====
 let allProducts = [];
 
-// ===== Initialize Page =====
+// ===== Initialize =====
 document.addEventListener('DOMContentLoaded', () => {
     loadLowStockProducts();
 });
 
 // ===== Load Low Stock Products & Variants =====
 async function loadLowStockProducts() {
-    const spinner = document.getElementById('loadingSpinner');
+    const spinner    = document.getElementById('loadingSpinner');
     const emptyState = document.getElementById('emptyState');
     const listContainer = document.getElementById('lowStockList');
-    const table = document.getElementById('lowStockTable');
-    
-    spinner.style.display = 'flex';
+    const table      = document.getElementById('lowStockTable');
+
+    spinner.style.display    = 'flex';
     emptyState.style.display = 'none';
     listContainer.style.display = 'none';
-    table.style.display = 'none';
-    
+    table.style.display      = 'none';
+
     try {
-        // Get all products
-        const params = getQueryParams();
-        const data = await API.getProducts(params.search, params.category);
+        // Safe fallback: getQueryParams may not exist on this page
+        let search = '', category = '';
+        if (typeof getQueryParams === 'function') {
+            const params = getQueryParams();
+            search   = params.search   || '';
+            category = params.category || '';
+        }
+
+        const data = await API.getProducts(search, category);
         allProducts = data;
-        
-        // Filter low stock items (including variants)
+
         const lowStockItems = [];
+
         data.forEach(product => {
-            if (product.has_variants && product.variants && product.variants.length > 0) {
+            const hasVariants = product.has_variants &&
+                                Array.isArray(product.variants) &&
+                                product.variants.length > 0;
+
+            if (hasVariants) {
+                // Check each variant individually
                 product.variants.forEach(variant => {
-                    if (variant.status === 'Low') {
+                    const stock    = Number(variant.stock    ?? 0);
+                    const minStock = Number(variant.min_stock ?? 0);
+                    const isLow    = variant.status === 'Low' || stock < minStock;
+
+                    if (isLow) {
                         lowStockItems.push({
-                            id: product.id,
-                            variant_id: variant.id,
-                            name: `${product.name} (${variant.variant_value})`,
-                            category: product.category,
-                            barcode: variant.barcode || product.barcode,
-                            selling_price: variant.effective_selling_price || product.selling_price,
-                            stock: variant.stock,
-                            min_stock: variant.min_stock,
-                            is_variant: true,
+                            id:            product.id,
+                            variant_id:    variant.id,
+                            name:          `${product.name} (${variant.variant_value})`,
+                            category:      product.category || '',
+                            barcode:       variant.barcode || product.barcode || '',
+                            selling_price: variant.effective_selling_price ?? variant.selling_price ?? product.selling_price,
+                            stock,
+                            min_stock:     minStock,
+                            is_variant:    true,
                             variant_value: variant.variant_value,
-                            variant_type: variant.variant_type
+                            variant_type:  variant.variant_type,
                         });
                     }
                 });
-            } else if (!product.has_variants) {
-                if (product.status === 'Low') {
+
+                // Also check the parent product stock if it carries its own stock
+                // (some backends track parent stock separately even when variants exist)
+                const pStock    = Number(product.stock    ?? 0);
+                const pMinStock = Number(product.min_stock ?? 0);
+                const parentLow = product.status === 'Low' || pStock < pMinStock;
+                if (parentLow && pMinStock > 0) {
+                    // Only add if not already covered by variants above
+                    // (avoid duplicates: add only when parent has independent stock)
+                    const alreadyAdded = lowStockItems.some(i => i.id === product.id && !i.is_variant);
+                    if (!alreadyAdded) {
+                        lowStockItems.push({
+                            id:            product.id,
+                            variant_id:    null,
+                            name:          product.name,
+                            category:      product.category || '',
+                            barcode:       product.barcode || '',
+                            selling_price: product.selling_price,
+                            stock:         pStock,
+                            min_stock:     pMinStock,
+                            is_variant:    false,
+                        });
+                    }
+                }
+
+            } else {
+                // No variants — check the product directly
+                const stock    = Number(product.stock    ?? 0);
+                const minStock = Number(product.min_stock ?? 0);
+                const isLow    = product.status === 'Low' || stock < minStock;
+
+                if (isLow) {
                     lowStockItems.push({
-                        id: product.id,
-                        variant_id: null,
-                        name: product.name,
-                        category: product.category,
-                        barcode: product.barcode,
+                        id:            product.id,
+                        variant_id:    null,
+                        name:          product.name,
+                        category:      product.category || '',
+                        barcode:       product.barcode  || '',
                         selling_price: product.selling_price,
-                        stock: product.stock,
-                        min_stock: product.min_stock,
-                        is_variant: false
+                        stock,
+                        min_stock:     minStock,
+                        is_variant:    false,
                     });
                 }
             }
         });
-        
+
         spinner.style.display = 'none';
-        
+
         if (lowStockItems.length === 0) {
             emptyState.style.display = 'block';
             document.getElementById('lowStockCount').textContent = '0';
         } else {
+            document.getElementById('lowStockCount').textContent = lowStockItems.length;
             renderLowStockList(lowStockItems);
             renderLowStockTable(lowStockItems);
-            document.getElementById('lowStockCount').textContent = lowStockItems.length;
         }
+
     } catch (error) {
         spinner.style.display = 'none';
-        showToast('Failed to load products: ' + error.message, 'error');
+        console.error('Low stock load error:', error);
+        showToast('Failed to load products: ' + (error.message || error), 'error');
     }
 }
 
-// ===== Render Low Stock List =====
+// ===== Render Cards =====
 function renderLowStockList(items) {
     const listContainer = document.getElementById('lowStockList');
     listContainer.innerHTML = '';
     listContainer.style.display = 'flex';
-    
+
     items.forEach(item => {
         const shortage = item.min_stock - item.stock;
-        const inputId = item.is_variant ? `restock-v-${item.variant_id}` : `restock-${item.id}`;
-        
+        const inputId  = item.is_variant
+            ? `restock-v-${item.variant_id}`
+            : `restock-${item.id}`;
+
         const div = document.createElement('div');
         div.className = 'low-stock-item';
         div.innerHTML = `
@@ -190,72 +238,75 @@ function renderLowStockList(items) {
             </div>
             <div style="margin-left: 20px;">
                 <div class="transaction-input">
-                    <input type="number" id="${inputId}" placeholder="Qty" min="1" style="width: 70px;">
-                    <button class="btn btn-success btn-sm" onclick="restockItem(${item.id}, ${item.variant_id}, ${item.is_variant})">
+                    <input type="number" id="${inputId}" placeholder="Qty" min="1" style="width: 70px; font-size: 16px;">
+                    <button class="btn btn-success btn-sm"
+                            onclick="restockItem(${item.id}, ${item.variant_id ?? 'null'}, ${item.is_variant})">
                         <i class="fas fa-plus"></i> Restock
                     </button>
                 </div>
             </div>
         `;
-        
         listContainer.appendChild(div);
     });
 }
 
-// ===== Render Low Stock Table =====
+// ===== Render Table =====
 function renderLowStockTable(items) {
     const tbody = document.getElementById('lowStockTableBody');
     const table = document.getElementById('lowStockTable');
-    
     tbody.innerHTML = '';
     table.style.display = 'table';
-    
+
     items.forEach((item, index) => {
         const shortage = item.min_stock - item.stock;
-        const inputId = item.is_variant ? `table-restock-v-${item.variant_id}` : `table-restock-${item.id}`;
-        
+        const inputId  = item.is_variant
+            ? `table-restock-v-${item.variant_id}`
+            : `table-restock-${item.id}`;
+
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${index + 1}</td>
             <td><strong>${escapeHtml(item.name)}</strong></td>
-            <td>${item.category || '-'}</td>
+            <td>${escapeHtml(item.category) || '-'}</td>
             <td>${item.barcode || '-'}</td>
             <td>${formatCurrency(item.selling_price)}</td>
             <td class="stock-value low">${item.stock}</td>
             <td>${item.min_stock}</td>
-            <td style="color: var(--danger-color); font-weight: 600;">-${shortage}</td>
+            <td style="color: var(--danger-color, #dc2626); font-weight: 600;">-${shortage}</td>
             <td>
-                <div class="transaction-input">
-                    <input type="number" id="${inputId}" placeholder="Qty" min="1" style="width: 60px;">
-                    <button class="btn btn-sm btn-success" onclick="restockFromTable(${item.id}, ${item.variant_id}, ${item.is_variant})">
+                <div class="transaction-input" style="display:flex;gap:4px;align-items:center;">
+                    <input type="number" id="${inputId}" placeholder="Qty" min="1"
+                           style="width: 60px; font-size: 16px; padding: 4px 6px;
+                                  border: 1.5px solid #e2e8f0; border-radius: 6px; outline: none;">
+                    <button class="btn btn-sm btn-success"
+                            onclick="restockFromTable(${item.id}, ${item.variant_id ?? 'null'}, ${item.is_variant})">
                         <i class="fas fa-plus"></i>
                     </button>
                 </div>
             </td>
         `;
-        
         tbody.appendChild(row);
     });
 }
 
-// ===== Product/Variant Actions =====
+// ===== Restock Actions =====
 async function restockItem(id, variantId, isVariant) {
     const inputId = isVariant ? `restock-v-${variantId}` : `restock-${id}`;
-    const input = document.getElementById(inputId);
-    const quantity = parseInt(input.value);
-    
+    const input   = document.getElementById(inputId);
+    const quantity = parseInt(input ? input.value : 0);
+
     if (!quantity || quantity <= 0) {
         showToast('Please enter a valid quantity', 'error');
         return;
     }
-    
+
     try {
         if (isVariant) {
             await API.restockVariant(variantId, quantity);
-            showToast('Variant restocked successfully!');
+            showToast('Variant restocked!');
         } else {
             await API.restockProduct(id, quantity);
-            showToast('Product restocked successfully!');
+            showToast('Product restocked!');
         }
         loadLowStockProducts();
     } catch (error) {
@@ -265,21 +316,21 @@ async function restockItem(id, variantId, isVariant) {
 
 async function restockFromTable(id, variantId, isVariant) {
     const inputId = isVariant ? `table-restock-v-${variantId}` : `table-restock-${id}`;
-    const input = document.getElementById(inputId);
-    const quantity = parseInt(input.value);
-    
+    const input   = document.getElementById(inputId);
+    const quantity = parseInt(input ? input.value : 0);
+
     if (!quantity || quantity <= 0) {
         showToast('Please enter a valid quantity', 'error');
         return;
     }
-    
+
     try {
         if (isVariant) {
             await API.restockVariant(variantId, quantity);
-            showToast('Variant restocked successfully!');
+            showToast('Variant restocked!');
         } else {
             await API.restockProduct(id, quantity);
-            showToast('Product restocked successfully!');
+            showToast('Product restocked!');
         }
         loadLowStockProducts();
     } catch (error) {
@@ -287,29 +338,26 @@ async function restockFromTable(id, variantId, isVariant) {
     }
 }
 
-// ===== Search Handler =====
+// ===== Search =====
 function handleSearch(search, category) {
     loadLowStockProducts();
 }
 
-// ===== Mobile Search =====
 function mobileSearch() {
-    const searchInput = document.getElementById('mobileSearchInput');
+    const searchInput    = document.getElementById('mobileSearchInput');
     const categoryFilter = document.getElementById('mobileCategoryFilter');
-    
     if (searchInput && typeof performSearch === 'function') {
         performSearch(searchInput.value, categoryFilter.value);
     }
 }
 
-// ===== Utility Functions =====
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
-// Make handleSearch available globally
 window.handleSearch = handleSearch;
 </script>
 {% endblock %}

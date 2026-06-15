@@ -55,6 +55,7 @@
     gap:5px; transition:all 0.2s; text-decoration:none; white-space:nowrap;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+    flex-shrink: 0;
 }
 .btn-primary   { background:#2563eb; color:white; }
 .btn-primary:hover   { background:#1d4ed8; }
@@ -90,10 +91,9 @@
 .form-group label { font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.04em; }
 .form-group input, .form-group select {
     padding:9px 11px; border:1.5px solid #e2e8f0; border-radius:8px;
-    font-size:13px; color:#1e293b; outline:none; width:100%;
-    transition:border-color 0.2s, box-shadow 0.2s;
-    /* Prevent zoom on focus on iOS */
     font-size: max(16px, 13px);
+    color:#1e293b; outline:none; width:100%;
+    transition:border-color 0.2s, box-shadow 0.2s;
 }
 .form-group input:focus, .form-group select:focus {
     border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.1);
@@ -116,17 +116,16 @@
 .table-title { font-size:14px; font-weight:700; color:#1e293b; display:flex; align-items:center; gap:7px; }
 
 /* ===== DESKTOP TABLE ===== */
-.desktop-table { width:100%; }
 .desktop-table-wrap { overflow-x:auto; -webkit-overflow-scrolling: touch; }
-table { width:100%; border-collapse:collapse; }
+table { width:100%; border-collapse:collapse; min-width: 900px; }
 th {
-    background:#f8fafc; padding:10px 13px;
+    background:#f8fafc; padding:10px 10px;
     text-align:left; font-size:10px; font-weight:700;
     color:#64748b; text-transform:uppercase; letter-spacing:0.06em;
     border-bottom:1px solid #e2e8f0; white-space:nowrap;
 }
 td {
-    padding:11px 13px; font-size:13px; color:#374151;
+    padding:10px 10px; font-size:13px; color:#374151;
     border-bottom:1px solid #f8fafc; vertical-align:middle;
 }
 tr:last-child td { border-bottom:none; }
@@ -135,6 +134,38 @@ tr.low-stock td { background:#fef9f9; }
 tr.low-stock:hover td { background:#fef2f2; }
 .stock-value { font-weight:700; }
 .stock-value.low { color:#dc2626; }
+
+/* ===== SELL/RESTOCK ACTION GROUP (DESKTOP) ===== */
+.action-group {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+/* Sell+Restock block: two pairs stacked on tight screens */
+.sell-restock-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+.sell-restock-pair {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+.qty-input {
+    width: 56px; padding: 5px 6px; border: 1.5px solid #e2e8f0;
+    border-radius: 6px; font-size: 12px; text-align: center; outline: none;
+    flex-shrink: 0;
+}
+.qty-input:focus { border-color:#2563eb; }
+.minstock-input {
+    width: 56px; padding: 5px 6px; border: 1.5px solid #e2e8f0;
+    border-radius: 6px; font-size: 12px; text-align: center; outline: none;
+    flex-shrink: 0;
+}
+.minstock-input:focus { border-color:#2563eb; }
 
 /* ===== MOBILE CARDS ===== */
 .mobile-products { display:none; }
@@ -163,17 +194,18 @@ tr.low-stock:hover td { background:#fef2f2; }
 .action-row {
     display:flex; gap:6px; align-items:center;
 }
-.action-row label { font-size:11px; color:#64748b; font-weight:600; min-width:60px; }
-.action-row-inputs { display:flex; gap:5px; align-items:center; flex:1; }
+.action-row label { font-size:11px; color:#64748b; font-weight:600; min-width:64px; flex-shrink: 0; }
+.action-row-inputs { display:flex; gap:6px; align-items:center; flex:1; min-width:0; }
 .qty-input-mobile {
-    flex:1; padding:10px; border:1.5px solid #e2e8f0;
+    flex:1; padding:10px 8px; border:1.5px solid #e2e8f0;
     border-radius:7px; text-align:center; outline:none;
     min-width:0;
-    /* Prevent iOS zoom */
     font-size: 16px;
 }
 .qty-input-mobile:focus { border-color:#2563eb; }
 .card-divider { height:1px; background:#f1f5f9; margin:4px 0; }
+
+/* ===== VARIANT CARDS (MOBILE) ===== */
 .card-variant-section {
     margin-top:10px; border-top:1px solid #e0e7ff;
     padding-top:10px;
@@ -203,6 +235,7 @@ tr.low-stock:hover td { background:#fef2f2; }
 .badge {
     display:inline-flex; align-items:center; padding:3px 9px;
     border-radius:20px; font-size:10px; font-weight:700; letter-spacing:0.02em;
+    white-space: nowrap;
 }
 .badge-ok   { background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; }
 .badge-near { background:#fff7ed; color:#ea580c; border:1px solid #fed7aa; }
@@ -211,21 +244,8 @@ tr.low-stock:hover td { background:#fef2f2; }
     display:inline-flex; align-items:center; gap:3px;
     background:#eff6ff; color:#2563eb; font-size:10px;
     padding:2px 7px; border-radius:10px; font-weight:700; border:1px solid #bfdbfe;
+    white-space: nowrap;
 }
-
-/* ===== INLINE INPUTS ===== */
-.qty-input {
-    width:54px; padding:5px 6px; border:1.5px solid #e2e8f0;
-    border-radius:6px; font-size:12px; text-align:center; outline:none;
-}
-.qty-input:focus { border-color:#2563eb; }
-.minstock-input {
-    width:54px; padding:5px 6px; border:1.5px solid #e2e8f0;
-    border-radius:6px; font-size:12px; text-align:center; outline:none;
-}
-.minstock-input:focus { border-color:#2563eb; }
-.action-group { display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
-.action-divider { width:1px; height:20px; background:#e2e8f0; margin:0 2px; flex-shrink:0; }
 
 /* ===== EXPAND BUTTON ===== */
 .btn-expand {
@@ -247,13 +267,22 @@ tr.low-stock:hover td { background:#fef2f2; }
     text-transform:uppercase; letter-spacing:0.08em;
     display:flex; align-items:center; gap:5px;
 }
-.variants-table { width:100%; border-collapse:collapse; font-size:12px; }
+.variants-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.variants-table { width:100%; border-collapse:collapse; font-size:12px; min-width: 700px; }
 .variants-table th {
-    background:#e0e7ff; color:#4338ca; padding:6px 9px; font-size:9px;
+    background:#e0e7ff; color:#4338ca; padding:6px 9px; font-size:9px; white-space: nowrap;
 }
 .variants-table td { padding:7px 9px; border-bottom:1px solid #e8edf5; background:white; }
 .variants-table tr:last-child td { border-bottom:none; }
 .variants-table tr.low-stock td { background:#fef9f9; }
+
+/* ===== INLINE STOCK EDIT ===== */
+.stock-edit-group { display:flex; align-items:center; gap:3px; }
+.stock-edit-input {
+    width:55px; padding:4px 5px; border:1.5px solid #e2e8f0;
+    border-radius:5px; font-size:12px; text-align:center; outline:none;
+}
+.stock-edit-input:focus { border-color:#2563eb; }
 
 /* ===== LOADING & EMPTY ===== */
 .loading {
@@ -293,16 +322,11 @@ tr.low-stock:hover td { background:#fef2f2; }
     padding:18px 22px 14px; border-bottom:1px solid #f1f5f9;
     display:flex; justify-content:space-between; align-items:center;
     position:sticky; top:0; background:white; z-index:1;
-    /* Mobile: drag handle aesthetic */
 }
-/* Drag handle indicator on mobile */
 .modal-header::before {
-    content:'';
-    display:block;
-    position:absolute;
+    content:''; display:block; position:absolute;
     top:8px; left:50%; transform:translateX(-50%);
-    width:36px; height:4px;
-    background:#e2e8f0; border-radius:4px;
+    width:36px; height:4px; background:#e2e8f0; border-radius:4px;
 }
 .modal-header h3 { margin:0; font-size:16px; font-weight:700; color:#1e293b; padding-top:6px; }
 .modal-body { padding:18px 22px; }
@@ -310,7 +334,6 @@ tr.low-stock:hover td { background:#fef2f2; }
     padding:14px 22px; border-top:1px solid #f1f5f9;
     display:flex; gap:8px; justify-content:flex-end;
     position:sticky; bottom:0; background:white;
-    /* Safe area for iOS home bar */
     padding-bottom: max(14px, env(safe-area-inset-bottom));
 }
 .close-btn {
@@ -330,7 +353,6 @@ tr.low-stock:hover td { background:#fef2f2; }
     width:100%; padding:11px 13px; border:1.5px solid #e2e8f0;
     border-radius:8px; outline:none;
     transition:border-color 0.2s, box-shadow 0.2s;
-    /* Prevent iOS zoom */
     font-size: 16px;
 }
 .modal .form-group input:focus, .modal .form-group select:focus {
@@ -348,111 +370,89 @@ tr.low-stock:hover td { background:#fef2f2; }
     display:flex; align-items:flex-start; gap:7px;
 }
 
-/* ===== MOBILE SEARCH (page-level, kept for backward compat) ===== */
+/* ===== MOBILE SEARCH ===== */
 .mobile-search { display:none; gap:8px; margin-bottom:14px; }
 .mobile-search input, .mobile-search select {
     padding:9px 11px; border:1.5px solid #e2e8f0; border-radius:8px;
-    font-size:16px; /* prevent iOS zoom */ outline:none;
+    font-size:16px; outline:none;
 }
 .mobile-search input { flex:1; }
 
-/* ===== RESPONSIVE ===== */
-@media (max-width: 1100px) {
-    .summary-cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-}
-
-@media (max-width: 900px) {
-    .summary-cards { grid-template-columns:repeat(2,1fr); gap:10px; }
-}
-
-@media (max-width: 768px) {
-    /* Modal: bottom sheet on mobile */
-    .modal {
-        align-items: flex-end;
-        padding: 0;
-    }
-    .modal-content {
-        border-radius: 20px 20px 0 0;
-        max-height: 88vh;
-    }
-
-    /* Table → Cards */
-    .desktop-table-wrap { display: none; }
-    .mobile-products { display: block; }
-
-    /* Mobile search bar */
-    .mobile-search { display: flex; }
-
-    /* Page header */
-    .page-title { font-size: 18px; }
-    .header-actions .btn span { display: none; }
-    .header-actions .btn { padding: 8px 10px; }
-
-    /* Summary cards */
-    .summary-cards {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
-    }
-    .summary-card { padding: 12px; gap: 10px; }
-    .summary-card .icon { width: 40px; height: 40px; font-size: 17px; border-radius: 10px; }
-    .summary-card .info h3 { font-size: 17px; }
-
-    /* Add product form */
-    .add-product-form { padding: 16px; }
-    .form-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-
-    /* Modal */
-    .form-row { grid-template-columns: 1fr; gap: 0; }
-
-    /* Mobile variants table */
-    .variants-container { padding: 8px; }
-    .variants-table { font-size: 11px; }
-    .variants-table th { padding: 5px 4px; font-size: 10px; }
-    .variants-table td { padding: 5px 4px; }
-    .variants-table .action-group { flex-wrap: wrap; gap: 3px; }
-    .variants-table .qty-input { width: 45px; padding: 3px 5px; font-size: 11px; }
-    .variants-table .minstock-input { width: 40px; padding: 3px 5px; font-size: 11px; }
-    .variants-table .btn-sm { padding: 3px 6px; font-size: 10px; }
-}
-
-@media (max-width: 480px) {
-    .summary-cards { grid-template-columns: repeat(2, 1fr); gap: 7px; }
-    .form-grid { grid-template-columns: 1fr; }
-
-    /* Bigger touch targets for mobile card actions */
-    .qty-input-mobile { padding: 11px 8px; }
-    .product-card-stats { grid-template-columns: repeat(2, 1fr); }
-
-    /* Header: stack vertically */
-    .page-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-    .header-actions { width: 100%; justify-content: flex-end; }
-    .header-actions .btn span { display: inline; }
-}
-
-@media (max-width: 380px) {
-    .summary-cards { gap: 6px; }
-    .summary-card .info h3 { font-size: 15px; }
-    .page-title { font-size: 17px; }
-    .header-actions .btn span { display: none; }
-}
-
-/* ===== SAFE AREA (notch / home bar) ===== */
+/* ===== SAFE AREA ===== */
 @supports (padding: max(0px)) {
     .main-content {
         padding-left: max(12px, env(safe-area-inset-left));
         padding-right: max(12px, env(safe-area-inset-right));
     }
 }
+
+/* ===== RESPONSIVE ===== */
+
+/* Large tablets */
+@media (max-width: 1100px) {
+    .summary-cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+}
+
+/* Tablets: switch to card view */
+@media (max-width: 860px) {
+    .desktop-table-wrap { display: none; }
+    .mobile-products { display: block; }
+    .mobile-search { display: flex; }
+
+    .summary-cards { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+    /* Compact header — show icons only, label in tooltip */
+    .page-title { font-size: 19px; }
+    .header-actions .btn-label { display: none; }
+
+    .add-product-form { padding: 16px; }
+    .form-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .form-row { grid-template-columns: 1fr; }
+}
+
+/* Mobile phones */
+@media (max-width: 600px) {
+    .summary-cards { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .summary-card { padding: 12px; gap: 10px; }
+    .summary-card .icon { width: 40px; height: 40px; font-size: 17px; border-radius: 10px; }
+    .summary-card .info h3 { font-size: 17px; }
+
+    .page-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .header-actions { width: 100%; justify-content: flex-end; }
+    .header-actions .btn { padding: 8px 11px; font-size: 13px; }
+    /* Show labels again when they have full row */
+    .header-actions .btn-label { display: inline; }
+
+    .form-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* Bigger touch targets */
+    .qty-input-mobile { padding: 12px 8px; font-size: 16px; }
+    .product-card-stats { grid-template-columns: repeat(2, 1fr); }
+    .product-card { padding: 14px; }
+}
+
+/* Small phones */
+@media (max-width: 420px) {
+    .summary-cards { gap: 6px; }
+    .summary-card .info h3 { font-size: 15px; }
+    .page-title { font-size: 17px; }
+
+    /* Stack header buttons to 2 per row */
+    .header-actions { gap: 6px; }
+
+    .form-grid { grid-template-columns: 1fr; }
+
+    /* Tighter card padding */
+    .product-card { padding: 12px; }
+    .variant-card { padding: 8px; }
+}
 </style>
 {% endblock %}
 
 {% block content %}
 
-<!-- Mobile Search (legacy, kept for backward compat with app2.js) -->
+<!-- Mobile Search (kept for backward compat with app2.js) -->
 <div class="mobile-search">
     <input type="text" id="mobileSearchInput" placeholder="Search products...">
     <select id="mobileCategoryFilter"><option value="">All</option></select>
@@ -470,15 +470,15 @@ tr.low-stock:hover td { background:#fef2f2; }
     <div class="header-actions">
         <button class="btn btn-ghost" onclick="downloadExcel()">
             <i class="fas fa-file-excel" style="color:#16a34a;"></i>
-            <span>Excel</span>
+            <span class="btn-label">Excel</span>
         </button>
         <button class="btn btn-ghost" onclick="openGoogleSheetsModal()">
             <i class="fas fa-cloud" style="color:#0891b2;"></i>
-            <span>Sheets</span>
+            <span class="btn-label">Sheets</span>
         </button>
         <button class="btn btn-primary" onclick="toggleAddForm()">
             <i class="fas fa-plus"></i>
-            <span>Add Product</span>
+            <span class="btn-label">Add Product</span>
         </button>
     </div>
 </div>
@@ -577,14 +577,14 @@ tr.low-stock:hover td { background:#fef2f2; }
         <table id="productsTable" style="display:none;">
             <thead>
                 <tr>
-                    <th>#</th>
+                    <th style="width:36px;">#</th>
                     <th>Product</th>
-                    <th>Price</th>
-                    <th>Stock</th>
-                    <th>Status</th>
-                    <th>Sell / Restock</th>
-                    <th>Min Stock</th>
-                    <th>Actions</th>
+                    <th style="width:90px;">Price</th>
+                    <th style="width:110px;">Stock</th>
+                    <th style="width:80px;">Status</th>
+                    <th style="width:220px;">Sell / Restock</th>
+                    <th style="width:120px;">Min Stock</th>
+                    <th style="width:80px;">Actions</th>
                 </tr>
             </thead>
             <tbody id="productsBody"></tbody>
@@ -767,7 +767,7 @@ function renderProducts(productsList) {
         row.innerHTML = `
             <td style="color:#94a3b8;font-weight:600;font-size:12px;">${index + 1}</td>
             <td>
-                <div style="display:flex;align-items:center;gap:7px;">
+                <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
                     ${expandBtn}
                     <div>
                         <div style="font-weight:600;color:#1e293b;">${escapeHtml(product.name)}</div>
@@ -778,9 +778,9 @@ function renderProducts(productsList) {
             </td>
             <td style="font-weight:600;">${formatCurrency(product.selling_price)}</td>
             <td>
-                <div class="stock-edit-group" style="display:flex;align-items:center;gap:4px;">
+                <div class="stock-edit-group">
                     <span class="stock-value ${isLow ? 'low' : ''}" id="stock-display-${product.id}">${product.stock}</span>
-                    <input class="stock-edit-input" type="number" id="stock-edit-${product.id}" value="${product.stock}" min="0" style="display:none;width:55px;padding:4px 5px;border:1.5px solid #e2e8f0;border-radius:5px;font-size:12px;text-align:center;">
+                    <input class="stock-edit-input" type="number" id="stock-edit-${product.id}" value="${product.stock}" min="0" style="display:none;">
                     <button class="btn btn-sm btn-ghost" id="stock-edit-btn-${product.id}" onclick="showStockEdit(${product.id})" title="Edit stock" style="padding:4px 6px;">
                         <i class="fas fa-pen" style="font-size:10px;color:#64748b;"></i>
                     </button>
@@ -794,15 +794,19 @@ function renderProducts(productsList) {
             </td>
             <td>${getStatusBadge(product.status)}</td>
             <td>
-                <div class="action-group">
-                    <input class="qty-input" type="number" id="sell-qty-${product.id}" placeholder="Qty" min="1">
-                    <button class="btn btn-sm btn-success" onclick="sellProduct(${product.id})" title="Sell">
-                        <i class="fas fa-shopping-cart"></i> Sell
-                    </button>
-                    <input class="qty-input" type="number" id="restock-qty-${product.id}" placeholder="Qty" min="1">
-                    <button class="btn btn-sm btn-primary" onclick="restockProduct(${product.id})" title="Restock">
-                        <i class="fas fa-plus"></i> Restock
-                    </button>
+                <div class="sell-restock-group">
+                    <div class="sell-restock-pair">
+                        <input class="qty-input" type="number" id="sell-qty-${product.id}" placeholder="Qty" min="1">
+                        <button class="btn btn-sm btn-success" onclick="sellProduct(${product.id})" title="Sell">
+                            <i class="fas fa-shopping-cart"></i> Sell
+                        </button>
+                    </div>
+                    <div class="sell-restock-pair">
+                        <input class="qty-input" type="number" id="restock-qty-${product.id}" placeholder="Qty" min="1">
+                        <button class="btn btn-sm btn-primary" onclick="restockProduct(${product.id})" title="Restock">
+                            <i class="fas fa-plus"></i> Restock
+                        </button>
+                    </div>
                 </div>
             </td>
             <td>
@@ -840,7 +844,9 @@ function renderProducts(productsList) {
                                 <i class="fas fa-layer-group"></i> Variants (${product.variants.length})
                             </div>
                         </div>
-                        ${renderVariantsTable(product)}
+                        <div class="variants-table-wrap">
+                            ${renderVariantsTable(product)}
+                        </div>
                     </div>
                 </td>
             `;
@@ -858,15 +864,19 @@ function renderVariantsTable(product) {
     const rows = product.variants.map(v => `
         <tr class="${v.status === 'Low' ? 'low-stock' : ''}">
             <td>
-                <div class="action-group">
-                    <input class="qty-input" type="number" id="sell-variant-${v.id}" placeholder="Qty" min="1">
-                    <button class="btn btn-sm btn-success" onclick="sellVariant(${v.id}, ${product.id})">
-                        <i class="fas fa-shopping-cart"></i> Sell
-                    </button>
-                    <input class="qty-input" type="number" id="restock-variant-${v.id}" placeholder="Qty" min="1">
-                    <button class="btn btn-sm btn-primary" onclick="restockVariant(${v.id}, ${product.id})">
-                        <i class="fas fa-plus"></i> Restock
-                    </button>
+                <div class="sell-restock-group">
+                    <div class="sell-restock-pair">
+                        <input class="qty-input" type="number" id="sell-variant-${v.id}" placeholder="Qty" min="1">
+                        <button class="btn btn-sm btn-success" onclick="sellVariant(${v.id}, ${product.id})">
+                            <i class="fas fa-shopping-cart"></i> Sell
+                        </button>
+                    </div>
+                    <div class="sell-restock-pair">
+                        <input class="qty-input" type="number" id="restock-variant-${v.id}" placeholder="Qty" min="1">
+                        <button class="btn btn-sm btn-primary" onclick="restockVariant(${v.id}, ${product.id})">
+                            <i class="fas fa-plus"></i> Restock
+                        </button>
+                    </div>
                 </div>
             </td>
             <td><strong>${escapeHtml(v.variant_value)}</strong></td>
@@ -874,9 +884,9 @@ function renderVariantsTable(product) {
             <td style="font-family:monospace;font-size:11px;color:#94a3b8;">${v.barcode || '—'}</td>
             <td style="font-weight:600;">${formatCurrency(v.effective_selling_price || product.selling_price)}</td>
             <td>
-                <div class="stock-edit-group" style="display:flex;align-items:center;gap:3px;">
+                <div class="stock-edit-group">
                     <span class="stock-value ${v.status === 'Low' ? 'low' : ''}" id="vstock-display-${v.id}">${v.stock}</span>
-                    <input class="stock-edit-input" type="number" id="vstock-edit-${v.id}" value="${v.stock}" min="0" style="display:none;width:50px;padding:3px 4px;border:1.5px solid #e2e8f0;border-radius:4px;font-size:11px;text-align:center;">
+                    <input class="stock-edit-input" type="number" id="vstock-edit-${v.id}" value="${v.stock}" min="0" style="display:none;width:50px;font-size:11px;">
                     <button class="btn btn-sm btn-ghost" id="vstock-edit-btn-${v.id}" onclick="showVariantStockEdit(${v.id})" title="Edit stock" style="padding:3px 5px;">
                         <i class="fas fa-pen" style="font-size:9px;color:#64748b;"></i>
                     </button>
@@ -1158,7 +1168,6 @@ function openAddVariantModal(productId, productName) {
     document.getElementById('variantSellingPrice').value = '';
     document.getElementById('variantBarcode').value = '';
     document.getElementById('addVariantModal').classList.add('show');
-    // Focus first real input on modal open
     setTimeout(() => { document.getElementById('variantValue').focus(); }, 300);
 }
 
@@ -1216,13 +1225,11 @@ function showStockEdit(productId) {
     const editBtn = document.getElementById(`stock-edit-btn-${productId}`);
     const saveBtn = document.getElementById(`stock-save-btn-${productId}`);
     const cancelBtn = document.getElementById(`stock-cancel-btn-${productId}`);
-
     __stockEditCache[productId] = display.textContent;
     display.style.display = 'none';
     input.style.display = 'inline-block';
     input.value = display.textContent;
-    input.focus();
-    input.select();
+    input.focus(); input.select();
     editBtn.style.display = 'none';
     saveBtn.style.display = 'inline-flex';
     cancelBtn.style.display = 'inline-flex';
@@ -1234,7 +1241,6 @@ function cancelStockEdit(productId) {
     const editBtn = document.getElementById(`stock-edit-btn-${productId}`);
     const saveBtn = document.getElementById(`stock-save-btn-${productId}`);
     const cancelBtn = document.getElementById(`stock-cancel-btn-${productId}`);
-
     display.textContent = __stockEditCache[productId] || display.textContent;
     display.style.display = 'inline';
     input.style.display = 'none';
@@ -1246,19 +1252,12 @@ function cancelStockEdit(productId) {
 async function saveStockEdit(productId) {
     const input = document.getElementById(`stock-edit-${productId}`);
     const newStock = parseInt(input.value);
-
-    if (isNaN(newStock) || newStock < 0) {
-        showToast('Invalid stock value', 'error');
-        return;
-    }
-
+    if (isNaN(newStock) || newStock < 0) { showToast('Invalid stock value', 'error'); return; }
     try {
         await API.updateProductStock(productId, newStock);
         showToast('Stock updated!');
         loadProducts();
-    } catch (error) {
-        showToast('Failed to update stock: ' + error.message, 'error');
-    }
+    } catch (error) { showToast('Failed to update stock: ' + error.message, 'error'); }
 }
 
 async function sellProduct(productId) {
@@ -1362,13 +1361,11 @@ function showVariantStockEdit(variantId) {
     const editBtn = document.getElementById(`vstock-edit-btn-${variantId}`);
     const saveBtn = document.getElementById(`vstock-save-btn-${variantId}`);
     const cancelBtn = document.getElementById(`vstock-cancel-btn-${variantId}`);
-
     __variantEditCache[variantId] = display.textContent;
     display.style.display = 'none';
     input.style.display = 'inline-block';
     input.value = display.textContent;
-    input.focus();
-    input.select();
+    input.focus(); input.select();
     editBtn.style.display = 'none';
     saveBtn.style.display = 'inline-flex';
     cancelBtn.style.display = 'inline-flex';
@@ -1380,7 +1377,6 @@ function cancelVariantStockEdit(variantId) {
     const editBtn = document.getElementById(`vstock-edit-btn-${variantId}`);
     const saveBtn = document.getElementById(`vstock-save-btn-${variantId}`);
     const cancelBtn = document.getElementById(`vstock-cancel-btn-${variantId}`);
-
     display.textContent = __variantEditCache[variantId] || display.textContent;
     display.style.display = 'inline';
     input.style.display = 'none';
@@ -1392,19 +1388,12 @@ function cancelVariantStockEdit(variantId) {
 async function saveVariantStockEdit(variantId) {
     const input = document.getElementById(`vstock-edit-${variantId}`);
     const newStock = parseInt(input.value);
-
-    if (isNaN(newStock) || newStock < 0) {
-        showToast('Invalid stock value', 'error');
-        return;
-    }
-
+    if (isNaN(newStock) || newStock < 0) { showToast('Invalid stock value', 'error'); return; }
     try {
         await API.updateVariantStock(variantId, newStock);
         showToast('Variant stock updated!');
         loadProducts();
-    } catch (error) {
-        showToast('Failed to update variant stock: ' + error.message, 'error');
-    }
+    } catch (error) { showToast('Failed to update variant stock: ' + error.message, 'error'); }
 }
 
 async function sellVariant(variantId, productId) {
@@ -1449,107 +1438,52 @@ async function deleteVariant(variantId, productId) {
 async function downloadExcel() {
     try {
         showToast('Preparing Excel...', 'info');
-        if (!products || products.length === 0) {
-            showToast('No products to export', 'error');
-            return;
-        }
+        if (!products || products.length === 0) { showToast('No products to export', 'error'); return; }
 
         const wb = XLSX.utils.book_new();
 
-        const productRows = [
-            ['S.N', 'Product Name', 'Category', 'Barcode', 'Stock', 'Min Stock', 'Cost Price', 'Selling Price', 'Status', 'Variants Count']
-        ];
+        const productRows = [['S.N','Product Name','Category','Barcode','Stock','Min Stock','Cost Price','Selling Price','Status','Variants Count']];
         products.forEach((p, i) => {
-            productRows.push([
-                i + 1,
-                p.name,
-                p.category || '',
-                p.barcode || '',
-                p.stock,
-                p.min_stock,
-                parseFloat(p.cost_price),
-                parseFloat(p.selling_price),
-                p.status,
-                p.variants ? p.variants.length : 0
-            ]);
+            productRows.push([i+1, p.name, p.category||'', p.barcode||'', p.stock, p.min_stock,
+                parseFloat(p.cost_price), parseFloat(p.selling_price), p.status, p.variants?p.variants.length:0]);
         });
         const ws1 = XLSX.utils.aoa_to_sheet(productRows);
-        ws1['!cols'] = [
-            {wch:5},{wch:28},{wch:15},{wch:14},{wch:8},
-            {wch:10},{wch:12},{wch:13},{wch:8},{wch:14}
-        ];
+        ws1['!cols'] = [{wch:5},{wch:28},{wch:15},{wch:14},{wch:8},{wch:10},{wch:12},{wch:13},{wch:8},{wch:14}];
         XLSX.utils.book_append_sheet(wb, ws1, 'Products');
 
-        const variantRows = [
-            ['S.N', 'Product Name', 'Variant Value', 'Variant Type', 'Barcode', 'Stock', 'Min Stock', 'Cost Price', 'Selling Price', 'Status']
-        ];
+        const variantRows = [['S.N','Product Name','Variant Value','Variant Type','Barcode','Stock','Min Stock','Cost Price','Selling Price','Status']];
         let sn = 1;
         products.forEach(p => {
             if (p.variants && p.variants.length > 0) {
                 p.variants.forEach(v => {
-                    variantRows.push([
-                        sn++,
-                        p.name,
-                        v.variant_value,
-                        v.variant_type,
-                        v.barcode || '',
-                        v.stock,
-                        v.min_stock,
-                        v.cost_price ? parseFloat(v.cost_price) : parseFloat(p.cost_price),
-                        v.selling_price ? parseFloat(v.selling_price) : parseFloat(p.selling_price),
-                        v.status
-                    ]);
+                    variantRows.push([sn++, p.name, v.variant_value, v.variant_type, v.barcode||'', v.stock, v.min_stock,
+                        v.cost_price?parseFloat(v.cost_price):parseFloat(p.cost_price),
+                        v.selling_price?parseFloat(v.selling_price):parseFloat(p.selling_price), v.status]);
                 });
             }
         });
-
         if (variantRows.length > 1) {
             const ws2 = XLSX.utils.aoa_to_sheet(variantRows);
-            ws2['!cols'] = [
-                {wch:5},{wch:28},{wch:14},{wch:12},{wch:14},
-                {wch:8},{wch:10},{wch:12},{wch:13},{wch:8}
-            ];
+            ws2['!cols'] = [{wch:5},{wch:28},{wch:14},{wch:12},{wch:14},{wch:8},{wch:10},{wch:12},{wch:13},{wch:8}];
             XLSX.utils.book_append_sheet(wb, ws2, 'Variants');
         }
 
-        const combinedRows = [
-            ['S.N', 'Product Name', 'Variant', 'Type', 'Category', 'Barcode', 'Stock', 'Min Stock', 'Selling Price', 'Status']
-        ];
+        const combinedRows = [['S.N','Product Name','Variant','Type','Category','Barcode','Stock','Min Stock','Selling Price','Status']];
         let csn = 1;
         products.forEach(p => {
             if (p.variants && p.variants.length > 0) {
                 p.variants.forEach(v => {
-                    combinedRows.push([
-                        csn++,
-                        p.name,
-                        v.variant_value,
-                        v.variant_type,
-                        p.category || '',
-                        v.barcode || p.barcode || '',
-                        v.stock,
-                        v.min_stock,
-                        v.selling_price ? parseFloat(v.selling_price) : parseFloat(p.selling_price),
-                        v.status
-                    ]);
+                    combinedRows.push([csn++, p.name, v.variant_value, v.variant_type, p.category||'',
+                        v.barcode||p.barcode||'', v.stock, v.min_stock,
+                        v.selling_price?parseFloat(v.selling_price):parseFloat(p.selling_price), v.status]);
                 });
             } else {
-                combinedRows.push([
-                    csn++,
-                    p.name, '—', '—',
-                    p.category || '',
-                    p.barcode || '',
-                    p.stock,
-                    p.min_stock,
-                    parseFloat(p.selling_price),
-                    p.status
-                ]);
+                combinedRows.push([csn++, p.name,'—','—', p.category||'', p.barcode||'',
+                    p.stock, p.min_stock, parseFloat(p.selling_price), p.status]);
             }
         });
         const ws3 = XLSX.utils.aoa_to_sheet(combinedRows);
-        ws3['!cols'] = [
-            {wch:5},{wch:28},{wch:14},{wch:10},{wch:14},
-            {wch:14},{wch:8},{wch:10},{wch:13},{wch:8}
-        ];
+        ws3['!cols'] = [{wch:5},{wch:28},{wch:14},{wch:10},{wch:14},{wch:14},{wch:8},{wch:10},{wch:13},{wch:8}];
         XLSX.utils.book_append_sheet(wb, ws3, 'Combined');
 
         const date = new Date().toISOString().slice(0,10).replace(/-/g,'');
@@ -1631,7 +1565,7 @@ window.addEventListener('click', function(e) {
     if (e.target === document.getElementById('googleSheetsModal')) closeGoogleSheetsModal();
 });
 
-// Globals
+// ===== Globals =====
 window.handleSearch = handleSearch;
 window.downloadExcel = downloadExcel;
 window.openGoogleSheetsModal = openGoogleSheetsModal;
