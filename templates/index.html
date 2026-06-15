@@ -10,6 +10,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 /* ===== SUMMARY CARDS ===== */
+/* cache-bust: v2 */
 .summary-cards {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -1125,7 +1126,7 @@ async function updateMinStock(productId) {
 }
 
 // ===== Inline Stock Editing =====
-let _productStockCache = {};
+let __stockEditCache = {};
 
 function showStockEdit(productId) {
     const display = document.getElementById(`stock-display-${productId}`);
@@ -1134,7 +1135,7 @@ function showStockEdit(productId) {
     const saveBtn = document.getElementById(`stock-save-btn-${productId}`);
     const cancelBtn = document.getElementById(`stock-cancel-btn-${productId}`);
     
-    _productStockCache[productId] = display.textContent;
+    __stockEditCache[productId] = display.textContent;
     display.style.display = 'none';
     input.style.display = 'inline-block';
     input.value = display.textContent;
@@ -1152,7 +1153,7 @@ function cancelStockEdit(productId) {
     const saveBtn = document.getElementById(`stock-save-btn-${productId}`);
     const cancelBtn = document.getElementById(`stock-cancel-btn-${productId}`);
     
-    display.textContent = _productStockCache[productId] || display.textContent;
+    display.textContent = __stockEditCache[productId] || display.textContent;
     display.style.display = 'inline';
     input.style.display = 'none';
     editBtn.style.display = 'inline-flex';
@@ -1272,7 +1273,7 @@ async function updateVariantMinStockMobile(variantId) {
 }
 
 // ===== Inline Variant Stock Editing =====
-let _variantStockCache = {};
+let __variantEditCache = {};
 
 function showVariantStockEdit(variantId) {
     const display = document.getElementById(`vstock-display-${variantId}`);
@@ -1281,7 +1282,7 @@ function showVariantStockEdit(variantId) {
     const saveBtn = document.getElementById(`vstock-save-btn-${variantId}`);
     const cancelBtn = document.getElementById(`vstock-cancel-btn-${variantId}`);
     
-    _variantStockCache[variantId] = display.textContent;
+    __variantEditCache[variantId] = display.textContent;
     display.style.display = 'none';
     input.style.display = 'inline-block';
     input.value = display.textContent;
@@ -1299,7 +1300,7 @@ function cancelVariantStockEdit(variantId) {
     const saveBtn = document.getElementById(`vstock-save-btn-${variantId}`);
     const cancelBtn = document.getElementById(`vstock-cancel-btn-${variantId}`);
     
-    display.textContent = originalVariantStockValues[variantId] || display.textContent;
+    display.textContent = __variantEditCache[variantId] || display.textContent;
     display.style.display = 'inline';
     input.style.display = 'none';
     editBtn.style.display = 'inline-flex';
