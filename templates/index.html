@@ -1125,7 +1125,7 @@ async function updateMinStock(productId) {
 }
 
 // ===== Inline Stock Editing =====
-let originalStockValues = {};
+let _productStockCache = {};
 
 function showStockEdit(productId) {
     const display = document.getElementById(`stock-display-${productId}`);
@@ -1134,7 +1134,7 @@ function showStockEdit(productId) {
     const saveBtn = document.getElementById(`stock-save-btn-${productId}`);
     const cancelBtn = document.getElementById(`stock-cancel-btn-${productId}`);
     
-    originalStockValues[productId] = display.textContent;
+    _productStockCache[productId] = display.textContent;
     display.style.display = 'none';
     input.style.display = 'inline-block';
     input.value = display.textContent;
@@ -1152,7 +1152,7 @@ function cancelStockEdit(productId) {
     const saveBtn = document.getElementById(`stock-save-btn-${productId}`);
     const cancelBtn = document.getElementById(`stock-cancel-btn-${productId}`);
     
-    display.textContent = originalStockValues[productId] || display.textContent;
+    display.textContent = _productStockCache[productId] || display.textContent;
     display.style.display = 'inline';
     input.style.display = 'none';
     editBtn.style.display = 'inline-flex';
@@ -1272,7 +1272,7 @@ async function updateVariantMinStockMobile(variantId) {
 }
 
 // ===== Inline Variant Stock Editing =====
-let originalVariantStockValues = {};
+let _variantStockCache = {};
 
 function showVariantStockEdit(variantId) {
     const display = document.getElementById(`vstock-display-${variantId}`);
@@ -1281,7 +1281,7 @@ function showVariantStockEdit(variantId) {
     const saveBtn = document.getElementById(`vstock-save-btn-${variantId}`);
     const cancelBtn = document.getElementById(`vstock-cancel-btn-${variantId}`);
     
-    originalVariantStockValues[variantId] = display.textContent;
+    _variantStockCache[variantId] = display.textContent;
     display.style.display = 'none';
     input.style.display = 'inline-block';
     input.value = display.textContent;
