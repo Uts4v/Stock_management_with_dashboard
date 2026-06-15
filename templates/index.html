@@ -10,7 +10,6 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 /* ===== SUMMARY CARDS ===== */
-/* cache-bust: v2 */
 .summary-cards {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -54,6 +53,8 @@
     padding:8px 14px; border-radius:8px; font-size:13px; font-weight:600;
     cursor:pointer; border:none; display:inline-flex; align-items:center;
     gap:5px; transition:all 0.2s; text-decoration:none; white-space:nowrap;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 .btn-primary   { background:#2563eb; color:white; }
 .btn-primary:hover   { background:#1d4ed8; }
@@ -91,6 +92,8 @@
     padding:9px 11px; border:1.5px solid #e2e8f0; border-radius:8px;
     font-size:13px; color:#1e293b; outline:none; width:100%;
     transition:border-color 0.2s, box-shadow 0.2s;
+    /* Prevent zoom on focus on iOS */
+    font-size: max(16px, 13px);
 }
 .form-group input:focus, .form-group select:focus {
     border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.1);
@@ -114,7 +117,7 @@
 
 /* ===== DESKTOP TABLE ===== */
 .desktop-table { width:100%; }
-.desktop-table-wrap { overflow-x:auto; }
+.desktop-table-wrap { overflow-x:auto; -webkit-overflow-scrolling: touch; }
 table { width:100%; border-collapse:collapse; }
 th {
     background:#f8fafc; padding:10px 13px;
@@ -163,9 +166,11 @@ tr.low-stock:hover td { background:#fef2f2; }
 .action-row label { font-size:11px; color:#64748b; font-weight:600; min-width:60px; }
 .action-row-inputs { display:flex; gap:5px; align-items:center; flex:1; }
 .qty-input-mobile {
-    flex:1; padding:8px; border:1.5px solid #e2e8f0;
-    border-radius:7px; font-size:13px; text-align:center; outline:none;
+    flex:1; padding:10px; border:1.5px solid #e2e8f0;
+    border-radius:7px; text-align:center; outline:none;
     min-width:0;
+    /* Prevent iOS zoom */
+    font-size: 16px;
 }
 .qty-input-mobile:focus { border-color:#2563eb; }
 .card-divider { height:1px; background:#f1f5f9; margin:4px 0; }
@@ -210,7 +215,7 @@ tr.low-stock:hover td { background:#fef2f2; }
 
 /* ===== INLINE INPUTS ===== */
 .qty-input {
-    width:50px; padding:5px 6px; border:1.5px solid #e2e8f0;
+    width:54px; padding:5px 6px; border:1.5px solid #e2e8f0;
     border-radius:6px; font-size:12px; text-align:center; outline:none;
 }
 .qty-input:focus { border-color:#2563eb; }
@@ -224,10 +229,12 @@ tr.low-stock:hover td { background:#fef2f2; }
 
 /* ===== EXPAND BUTTON ===== */
 .btn-expand {
-    width:24px; height:24px; background:#f1f5f9; border:1px solid #e2e8f0;
+    width:28px; height:28px; background:#f1f5f9; border:1px solid #e2e8f0;
     border-radius:5px; cursor:pointer; font-size:10px; color:#64748b;
     display:inline-flex; align-items:center; justify-content:center;
     transition:all 0.2s; flex-shrink:0;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 .btn-expand:hover { background:#eff6ff; border-color:#2563eb; color:#2563eb; }
 
@@ -268,34 +275,46 @@ tr.low-stock:hover td { background:#fef2f2; }
 .modal {
     display:none; position:fixed; inset:0;
     background:rgba(15,23,42,0.55); z-index:1000;
-    align-items:center; justify-content:center;
-    backdrop-filter:blur(2px); padding:16px;
+    align-items:flex-end; justify-content:center;
+    backdrop-filter:blur(2px); padding:0;
 }
 .modal.show { display:flex; }
 .modal-content {
-    background:white; border-radius:16px; width:100%;
-    max-width:500px; max-height:92vh; overflow-y:auto;
-    box-shadow:0 24px 64px rgba(0,0,0,0.2);
-    animation:modalIn 0.2s ease;
+    background:white; border-radius:20px 20px 0 0; width:100%;
+    max-width:600px; max-height:92vh; overflow-y:auto;
+    box-shadow:0 -8px 40px rgba(0,0,0,0.18);
+    animation:modalSlideUp 0.25s ease;
 }
-@keyframes modalIn {
-    from { transform:scale(0.95) translateY(10px); opacity:0; }
-    to   { transform:scale(1) translateY(0); opacity:1; }
+@keyframes modalSlideUp {
+    from { transform:translateY(60px); opacity:0; }
+    to   { transform:translateY(0);    opacity:1; }
 }
 .modal-header {
     padding:18px 22px 14px; border-bottom:1px solid #f1f5f9;
     display:flex; justify-content:space-between; align-items:center;
     position:sticky; top:0; background:white; z-index:1;
+    /* Mobile: drag handle aesthetic */
 }
-.modal-header h3 { margin:0; font-size:16px; font-weight:700; color:#1e293b; }
+/* Drag handle indicator on mobile */
+.modal-header::before {
+    content:'';
+    display:block;
+    position:absolute;
+    top:8px; left:50%; transform:translateX(-50%);
+    width:36px; height:4px;
+    background:#e2e8f0; border-radius:4px;
+}
+.modal-header h3 { margin:0; font-size:16px; font-weight:700; color:#1e293b; padding-top:6px; }
 .modal-body { padding:18px 22px; }
 .modal-footer {
     padding:14px 22px; border-top:1px solid #f1f5f9;
     display:flex; gap:8px; justify-content:flex-end;
     position:sticky; bottom:0; background:white;
+    /* Safe area for iOS home bar */
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
 }
 .close-btn {
-    width:28px; height:28px; border-radius:7px; background:#f1f5f9;
+    width:32px; height:32px; border-radius:8px; background:#f1f5f9;
     border:none; cursor:pointer; display:flex; align-items:center;
     justify-content:center; color:#64748b; font-size:14px; transition:all 0.2s;
 }
@@ -308,9 +327,11 @@ tr.low-stock:hover td { background:#fef2f2; }
     margin-bottom:4px; text-transform:uppercase; letter-spacing:0.04em;
 }
 .modal .form-group input, .modal .form-group select {
-    width:100%; padding:9px 11px; border:1.5px solid #e2e8f0;
-    border-radius:8px; font-size:13px; outline:none;
+    width:100%; padding:11px 13px; border:1.5px solid #e2e8f0;
+    border-radius:8px; outline:none;
     transition:border-color 0.2s, box-shadow 0.2s;
+    /* Prevent iOS zoom */
+    font-size: 16px;
 }
 .modal .form-group input:focus, .modal .form-group select:focus {
     border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.1);
@@ -327,52 +348,111 @@ tr.low-stock:hover td { background:#fef2f2; }
     display:flex; align-items:flex-start; gap:7px;
 }
 
-/* ===== MOBILE SEARCH ===== */
+/* ===== MOBILE SEARCH (page-level, kept for backward compat) ===== */
 .mobile-search { display:none; gap:8px; margin-bottom:14px; }
 .mobile-search input, .mobile-search select {
     padding:9px 11px; border:1.5px solid #e2e8f0; border-radius:8px;
-    font-size:13px; outline:none;
+    font-size:16px; /* prevent iOS zoom */ outline:none;
 }
 .mobile-search input { flex:1; }
 
 /* ===== RESPONSIVE ===== */
+@media (max-width: 1100px) {
+    .summary-cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+}
+
 @media (max-width: 900px) {
     .summary-cards { grid-template-columns:repeat(2,1fr); gap:10px; }
 }
-@media (max-width: 640px) {
-    .mobile-search { display:flex; }
-    .summary-cards { grid-template-columns:repeat(2,1fr); gap:8px; }
-    .summary-card { padding:12px; gap:10px; }
-    .summary-card .icon { width:40px; height:40px; font-size:17px; border-radius:10px; }
-    .summary-card .info h3 { font-size:17px; }
-    .page-title { font-size:18px; }
-    .header-actions .btn span { display:none; }
-    .desktop-table-wrap { display:none; }
-    .mobile-products { display:block; }
-    .add-product-form { padding:16px; }
-    .form-grid { grid-template-columns:1fr 1fr; gap:10px; }
-    .modal-content { border-radius:12px; }
-    .form-row { grid-template-columns:1fr; gap:0; }
+
+@media (max-width: 768px) {
+    /* Modal: bottom sheet on mobile */
+    .modal {
+        align-items: flex-end;
+        padding: 0;
+    }
+    .modal-content {
+        border-radius: 20px 20px 0 0;
+        max-height: 88vh;
+    }
+
+    /* Table → Cards */
+    .desktop-table-wrap { display: none; }
+    .mobile-products { display: block; }
+
+    /* Mobile search bar */
+    .mobile-search { display: flex; }
+
+    /* Page header */
+    .page-title { font-size: 18px; }
+    .header-actions .btn span { display: none; }
+    .header-actions .btn { padding: 8px 10px; }
+
+    /* Summary cards */
+    .summary-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    .summary-card { padding: 12px; gap: 10px; }
+    .summary-card .icon { width: 40px; height: 40px; font-size: 17px; border-radius: 10px; }
+    .summary-card .info h3 { font-size: 17px; }
+
+    /* Add product form */
+    .add-product-form { padding: 16px; }
+    .form-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* Modal */
+    .form-row { grid-template-columns: 1fr; gap: 0; }
+
     /* Mobile variants table */
-    .variants-container { padding:8px; }
-    .variants-table { font-size:11px; }
-    .variants-table th { padding:5px 4px; font-size:10px; }
-    .variants-table td { padding:5px 4px; }
-    .variants-table .action-group { flex-wrap:wrap; gap:3px; }
-    .variants-table .qty-input { width:45px; padding:3px 5px; font-size:11px; }
-    .variants-table .minstock-input { width:40px; padding:3px 5px; font-size:11px; }
-    .variants-table .btn-sm { padding:3px 6px; font-size:10px; }
+    .variants-container { padding: 8px; }
+    .variants-table { font-size: 11px; }
+    .variants-table th { padding: 5px 4px; font-size: 10px; }
+    .variants-table td { padding: 5px 4px; }
+    .variants-table .action-group { flex-wrap: wrap; gap: 3px; }
+    .variants-table .qty-input { width: 45px; padding: 3px 5px; font-size: 11px; }
+    .variants-table .minstock-input { width: 40px; padding: 3px 5px; font-size: 11px; }
+    .variants-table .btn-sm { padding: 3px 6px; font-size: 10px; }
 }
+
+@media (max-width: 480px) {
+    .summary-cards { grid-template-columns: repeat(2, 1fr); gap: 7px; }
+    .form-grid { grid-template-columns: 1fr; }
+
+    /* Bigger touch targets for mobile card actions */
+    .qty-input-mobile { padding: 11px 8px; }
+    .product-card-stats { grid-template-columns: repeat(2, 1fr); }
+
+    /* Header: stack vertically */
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    .header-actions { width: 100%; justify-content: flex-end; }
+    .header-actions .btn span { display: inline; }
+}
+
 @media (max-width: 380px) {
-    .summary-cards { grid-template-columns:repeat(2,1fr); gap:6px; }
-    .form-grid { grid-template-columns:1fr; }
+    .summary-cards { gap: 6px; }
+    .summary-card .info h3 { font-size: 15px; }
+    .page-title { font-size: 17px; }
+    .header-actions .btn span { display: none; }
+}
+
+/* ===== SAFE AREA (notch / home bar) ===== */
+@supports (padding: max(0px)) {
+    .main-content {
+        padding-left: max(12px, env(safe-area-inset-left));
+        padding-right: max(12px, env(safe-area-inset-right));
+    }
 }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<!-- Mobile Search -->
+<!-- Mobile Search (legacy, kept for backward compat with app2.js) -->
 <div class="mobile-search">
     <input type="text" id="mobileSearchInput" placeholder="Search products...">
     <select id="mobileCategoryFilter"><option value="">All</option></select>
@@ -439,23 +519,23 @@ tr.low-stock:hover td { background:#fef2f2; }
             </div>
             <div class="form-group">
                 <label>Barcode</label>
-                <input type="text" id="productBarcode" name="barcode" placeholder="Scan or type">
+                <input type="text" id="productBarcode" name="barcode" placeholder="Scan or type" inputmode="text">
             </div>
             <div class="form-group">
                 <label>Initial Stock</label>
-                <input type="number" id="productStock" name="stock" min="0" value="0">
+                <input type="number" id="productStock" name="stock" min="0" value="0" inputmode="numeric">
             </div>
             <div class="form-group">
                 <label>Min Stock</label>
-                <input type="number" id="productMinStock" name="min_stock" min="0" value="10">
+                <input type="number" id="productMinStock" name="min_stock" min="0" value="10" inputmode="numeric">
             </div>
             <div class="form-group">
                 <label>Cost Price (NPR) *</label>
-                <input type="number" id="productCostPrice" name="cost_price" min="0" step="0.01" placeholder="0.00" required>
+                <input type="number" id="productCostPrice" name="cost_price" min="0" step="0.01" placeholder="0.00" required inputmode="decimal">
             </div>
             <div class="form-group">
                 <label>Selling Price (NPR) *</label>
-                <input type="number" id="productSellingPrice" name="selling_price" min="0" step="0.01" placeholder="0.00" required>
+                <input type="number" id="productSellingPrice" name="selling_price" min="0" step="0.01" placeholder="0.00" required inputmode="decimal">
             </div>
         </div>
         <div class="form-actions">
@@ -548,22 +628,22 @@ tr.low-stock:hover td { background:#fef2f2; }
             <div class="form-row">
                 <div class="form-group">
                     <label>Stock *</label>
-                    <input type="number" id="variantStock" min="0" value="0">
+                    <input type="number" id="variantStock" min="0" value="0" inputmode="numeric">
                 </div>
                 <div class="form-group">
                     <label>Min Stock</label>
-                    <input type="number" id="variantMinStock" min="0" value="5">
+                    <input type="number" id="variantMinStock" min="0" value="5" inputmode="numeric">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label>Cost Price (NPR)</label>
-                    <input type="number" id="variantCostPrice" min="0" step="0.01" placeholder="Optional">
+                    <input type="number" id="variantCostPrice" min="0" step="0.01" placeholder="Optional" inputmode="decimal">
                     <div class="form-hint">Blank = use product price</div>
                 </div>
                 <div class="form-group">
                     <label>Selling Price (NPR)</label>
-                    <input type="number" id="variantSellingPrice" min="0" step="0.01" placeholder="Optional">
+                    <input type="number" id="variantSellingPrice" min="0" step="0.01" placeholder="Optional" inputmode="decimal">
                     <div class="form-hint">Blank = use product price</div>
                 </div>
             </div>
@@ -890,7 +970,7 @@ function renderMobileProducts(productsList) {
                             <div class="action-row">
                                 <label>Sell</label>
                                 <div class="action-row-inputs">
-                                    <input class="qty-input-mobile" type="number" id="m-sell-variant-${v.id}" placeholder="Qty" min="1">
+                                    <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-sell-variant-${v.id}" placeholder="Qty" min="1">
                                     <button class="btn btn-sm btn-success" onclick="sellVariant(${v.id}, ${product.id})">
                                         <i class="fas fa-shopping-cart"></i>
                                     </button>
@@ -899,7 +979,7 @@ function renderMobileProducts(productsList) {
                             <div class="action-row">
                                 <label>Restock</label>
                                 <div class="action-row-inputs">
-                                    <input class="qty-input-mobile" type="number" id="m-restock-variant-${v.id}" placeholder="Qty" min="1">
+                                    <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-restock-variant-${v.id}" placeholder="Qty" min="1">
                                     <button class="btn btn-sm btn-primary" onclick="restockVariant(${v.id}, ${product.id})">
                                         <i class="fas fa-plus"></i>
                                     </button>
@@ -908,7 +988,7 @@ function renderMobileProducts(productsList) {
                             <div class="action-row">
                                 <label>Min Stock</label>
                                 <div class="action-row-inputs">
-                                    <input class="qty-input-mobile" type="number" id="m-v-minstock-${v.id}" value="${v.min_stock}" min="0">
+                                    <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-v-minstock-${v.id}" value="${v.min_stock}" min="0">
                                     <button class="btn btn-sm btn-ghost" onclick="updateVariantMinStockMobile(${v.id})">
                                         <i class="fas fa-check" style="color:#16a34a;"></i>
                                     </button>
@@ -958,7 +1038,7 @@ function renderMobileProducts(productsList) {
                 <div class="action-row">
                     <label>Sell</label>
                     <div class="action-row-inputs">
-                        <input class="qty-input-mobile" type="number" id="m-sell-qty-${product.id}" placeholder="Qty" min="1">
+                        <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-sell-qty-${product.id}" placeholder="Qty" min="1">
                         <button class="btn btn-sm btn-success" onclick="sellProductMobile(${product.id})">
                             <i class="fas fa-shopping-cart"></i> Sell
                         </button>
@@ -967,7 +1047,7 @@ function renderMobileProducts(productsList) {
                 <div class="action-row">
                     <label>Restock</label>
                     <div class="action-row-inputs">
-                        <input class="qty-input-mobile" type="number" id="m-restock-qty-${product.id}" placeholder="Qty" min="1">
+                        <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-restock-qty-${product.id}" placeholder="Qty" min="1">
                         <button class="btn btn-sm btn-primary" onclick="restockProductMobile(${product.id})">
                             <i class="fas fa-plus"></i> Restock
                         </button>
@@ -977,7 +1057,7 @@ function renderMobileProducts(productsList) {
                 <div class="action-row">
                     <label>Min Stock</label>
                     <div class="action-row-inputs">
-                        <input class="qty-input-mobile" type="number" id="m-minstock-${product.id}" value="${product.min_stock}" min="0">
+                        <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-minstock-${product.id}" value="${product.min_stock}" min="0">
                         <button class="btn btn-sm btn-ghost" onclick="updateMinStockMobile(${product.id})">
                             <i class="fas fa-check" style="color:#16a34a;"></i> Update
                         </button>
@@ -1078,6 +1158,8 @@ function openAddVariantModal(productId, productName) {
     document.getElementById('variantSellingPrice').value = '';
     document.getElementById('variantBarcode').value = '';
     document.getElementById('addVariantModal').classList.add('show');
+    // Focus first real input on modal open
+    setTimeout(() => { document.getElementById('variantValue').focus(); }, 300);
 }
 
 function closeVariantModal() {
@@ -1134,7 +1216,7 @@ function showStockEdit(productId) {
     const editBtn = document.getElementById(`stock-edit-btn-${productId}`);
     const saveBtn = document.getElementById(`stock-save-btn-${productId}`);
     const cancelBtn = document.getElementById(`stock-cancel-btn-${productId}`);
-    
+
     __stockEditCache[productId] = display.textContent;
     display.style.display = 'none';
     input.style.display = 'inline-block';
@@ -1152,7 +1234,7 @@ function cancelStockEdit(productId) {
     const editBtn = document.getElementById(`stock-edit-btn-${productId}`);
     const saveBtn = document.getElementById(`stock-save-btn-${productId}`);
     const cancelBtn = document.getElementById(`stock-cancel-btn-${productId}`);
-    
+
     display.textContent = __stockEditCache[productId] || display.textContent;
     display.style.display = 'inline';
     input.style.display = 'none';
@@ -1164,12 +1246,12 @@ function cancelStockEdit(productId) {
 async function saveStockEdit(productId) {
     const input = document.getElementById(`stock-edit-${productId}`);
     const newStock = parseInt(input.value);
-    
+
     if (isNaN(newStock) || newStock < 0) {
         showToast('Invalid stock value', 'error');
         return;
     }
-    
+
     try {
         await API.updateProductStock(productId, newStock);
         showToast('Stock updated!');
@@ -1280,7 +1362,7 @@ function showVariantStockEdit(variantId) {
     const editBtn = document.getElementById(`vstock-edit-btn-${variantId}`);
     const saveBtn = document.getElementById(`vstock-save-btn-${variantId}`);
     const cancelBtn = document.getElementById(`vstock-cancel-btn-${variantId}`);
-    
+
     __variantEditCache[variantId] = display.textContent;
     display.style.display = 'none';
     input.style.display = 'inline-block';
@@ -1298,7 +1380,7 @@ function cancelVariantStockEdit(variantId) {
     const editBtn = document.getElementById(`vstock-edit-btn-${variantId}`);
     const saveBtn = document.getElementById(`vstock-save-btn-${variantId}`);
     const cancelBtn = document.getElementById(`vstock-cancel-btn-${variantId}`);
-    
+
     display.textContent = __variantEditCache[variantId] || display.textContent;
     display.style.display = 'inline';
     input.style.display = 'none';
@@ -1310,12 +1392,12 @@ function cancelVariantStockEdit(variantId) {
 async function saveVariantStockEdit(variantId) {
     const input = document.getElementById(`vstock-edit-${variantId}`);
     const newStock = parseInt(input.value);
-    
+
     if (isNaN(newStock) || newStock < 0) {
         showToast('Invalid stock value', 'error');
         return;
     }
-    
+
     try {
         await API.updateVariantStock(variantId, newStock);
         showToast('Variant stock updated!');
@@ -1326,7 +1408,6 @@ async function saveVariantStockEdit(variantId) {
 }
 
 async function sellVariant(variantId, productId) {
-    // Try desktop input first, then mobile
     const input = document.getElementById(`sell-variant-${variantId}`)
                 || document.getElementById(`m-sell-variant-${variantId}`);
     const quantity = parseInt(input ? input.value : 0);
@@ -1364,7 +1445,7 @@ async function deleteVariant(variantId, productId) {
     } catch (error) { showToast('Failed: ' + error.message, 'error'); }
 }
 
-// ===== Excel Export (with variants) =====
+// ===== Excel Export =====
 async function downloadExcel() {
     try {
         showToast('Preparing Excel...', 'info');
@@ -1375,7 +1456,6 @@ async function downloadExcel() {
 
         const wb = XLSX.utils.book_new();
 
-        // ===== Sheet 1: Products =====
         const productRows = [
             ['S.N', 'Product Name', 'Category', 'Barcode', 'Stock', 'Min Stock', 'Cost Price', 'Selling Price', 'Status', 'Variants Count']
         ];
@@ -1400,7 +1480,6 @@ async function downloadExcel() {
         ];
         XLSX.utils.book_append_sheet(wb, ws1, 'Products');
 
-        // ===== Sheet 2: Variants =====
         const variantRows = [
             ['S.N', 'Product Name', 'Variant Value', 'Variant Type', 'Barcode', 'Stock', 'Min Stock', 'Cost Price', 'Selling Price', 'Status']
         ];
@@ -1433,7 +1512,6 @@ async function downloadExcel() {
             XLSX.utils.book_append_sheet(wb, ws2, 'Variants');
         }
 
-        // ===== Sheet 3: Combined View =====
         const combinedRows = [
             ['S.N', 'Product Name', 'Variant', 'Type', 'Category', 'Barcode', 'Stock', 'Min Stock', 'Selling Price', 'Status']
         ];

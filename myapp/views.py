@@ -232,10 +232,6 @@ class ProductViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 print(f"Supabase sync error (sell product stock): {e}")
 
-            try:
-                _sync_transaction(txn)
-            except Exception as e:
-                print(f"Supabase sync error (txn): {e}")
 
             return Response({'message': f'Sold {quantity} units of {product.name}', 'product': ProductSerializer(product).data})
 
@@ -273,10 +269,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 print(f"Supabase sync error (restock product stock): {e}")
 
-            try:
-                _sync_transaction(txn)
-            except Exception as e:
-                print(f"Supabase sync error (txn): {e}")
+                
 
             return Response({'message': f'Restocked {quantity} units of {product.name}', 'product': ProductSerializer(product).data})
 
@@ -463,10 +456,7 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 print(f"Supabase sync error (sell variant): {e}")
 
-            try:
-                _sync_transaction(txn)
-            except Exception as e:
-                print(f"Supabase sync error (txn): {e}")
+
 
             return Response({
                 'message': f'Sold {quantity} units of {variant.product.name} ({variant.variant_type}: {variant.variant_value})',
@@ -509,10 +499,6 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 print(f"Supabase sync error (restock variant): {e}")
 
-            try:
-                _sync_transaction(txn)
-            except Exception as e:
-                print(f"Supabase sync error (txn): {e}")
 
             return Response({
                 'message': f'Restocked {quantity} units of {variant.product.name} ({variant.variant_type}: {variant.variant_value})',

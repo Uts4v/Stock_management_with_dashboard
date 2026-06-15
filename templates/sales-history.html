@@ -360,7 +360,10 @@ function renderTransactions() {
                         <span class="time">${timeStr}</span>
                     </div>
                 </td>
-                <td><strong>${t.product_name}</strong></td>
+                <td>
+    <strong>${t.product_name}</strong>
+    ${t.variant_label ? `<div style="font-size:11px;color:#6366f1;margin-top:2px;"><i class="fas fa-layer-group" style="font-size:9px;"></i> ${t.variant_label}</div>` : ''}
+</td>
                 <td>
                     <span class="type-badge ${typeClass}">
                         <i class="fas ${typeIcon}"></i>

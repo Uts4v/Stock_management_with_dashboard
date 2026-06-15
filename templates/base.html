@@ -9,65 +9,338 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     {% block extra_head %}{% endblock %}
     {% block extra_css %}{% endblock %}
+    <style>
+    /* ===== MOBILE-FIRST NAVBAR ===== */
+    .navbar {
+        position: sticky;
+        top: 0;
+        z-index: 200;
+        background: #fff;
+        border-bottom: 1px solid #e2e8f0;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    /* Top bar: logo + hamburger */
+    .nav-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px;
+        gap: 10px;
+    }
+
+    .nav-brand img {
+        height: 36px;
+        width: auto;
+        object-fit: contain;
+        display: block;
+    }
+
+    /* Hamburger button (visible on mobile) */
+    .nav-hamburger {
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        gap: 5px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 8px;
+        transition: background 0.2s;
+        flex-shrink: 0;
+    }
+    .nav-hamburger:hover { background: #f1f5f9; }
+    .nav-hamburger span {
+        display: block;
+        width: 22px;
+        height: 2px;
+        background: #475569;
+        border-radius: 2px;
+        transition: all 0.25s;
+    }
+    .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* Search bar */
+    .nav-search {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: 1;
+        min-width: 0;
+    }
+    .nav-search input {
+        flex: 1;
+        min-width: 0;
+        padding: 8px 12px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 13px;
+        color: #1e293b;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        background: #f8fafc;
+    }
+    .nav-search input:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        background: #fff;
+    }
+    .nav-search select {
+        padding: 8px 10px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 13px;
+        color: #1e293b;
+        outline: none;
+        background: #f8fafc;
+        cursor: pointer;
+        transition: border-color 0.2s;
+        white-space: nowrap;
+    }
+    .nav-search select:focus { border-color: #2563eb; }
+    .btn-search {
+        padding: 8px 13px;
+        background: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        flex-shrink: 0;
+        transition: background 0.2s;
+    }
+    .btn-search:hover { background: #1d4ed8; }
+
+    /* Nav links row */
+    .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 0 8px 8px;
+        flex-wrap: wrap;
+    }
+    .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #64748b;
+        text-decoration: none;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .nav-link:hover { background: #f1f5f9; color: #1e293b; }
+    .nav-link.active { background: #eff6ff; color: #2563eb; font-weight: 600; }
+
+    /* User area */
+    .nav-user { position: relative; margin-left: auto; }
+    .nav-user-toggle {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.2s;
+        font-size: 13px;
+        color: #475569;
+        font-weight: 500;
+    }
+    .nav-user-toggle:hover { background: #f1f5f9; }
+    .user-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: #2563eb;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .user-name { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-dropdown {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: calc(100% + 6px);
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        min-width: 180px;
+        z-index: 300;
+        overflow: hidden;
+    }
+    .user-dropdown.show { display: block; }
+    .user-dropdown-header {
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        background: #f8fafc;
+    }
+    .user-dropdown-header strong { font-size: 13px; color: #1e293b; }
+    .user-dropdown-header small { font-size: 11px; color: #94a3b8; }
+    .user-dropdown hr { margin: 0; border: none; border-top: 1px solid #f1f5f9; }
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: #475569;
+        text-decoration: none;
+        transition: background 0.15s;
+    }
+    .dropdown-item:hover { background: #f8fafc; color: #1e293b; }
+    .dropdown-item.logout { color: #dc2626; }
+    .dropdown-item.logout:hover { background: #fef2f2; }
+
+    /* Main content */
+    .main-content {
+        padding: 20px 18px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+        .nav-hamburger { display: flex; }
+
+        /* On mobile: stack search + links into collapsible panel */
+        .nav-collapsible {
+            display: none;
+            flex-direction: column;
+            gap: 0;
+            border-top: 1px solid #f1f5f9;
+            padding: 10px 14px 14px;
+        }
+        .nav-collapsible.open { display: flex; }
+
+        .nav-search {
+            margin-bottom: 10px;
+        }
+        .nav-search select {
+            max-width: 110px;
+            font-size: 12px;
+        }
+
+        .nav-links {
+            padding: 0;
+            gap: 4px;
+        }
+        .nav-link { font-size: 13px; padding: 8px 12px; }
+
+        .nav-user { margin-left: 0; }
+        .user-name { display: none; }
+        .nav-user-toggle { padding: 4px 6px; }
+
+        .main-content { padding: 14px 12px; }
+    }
+
+    @media (max-width: 400px) {
+        .nav-top { padding: 8px 12px; }
+        .nav-brand img { height: 30px; }
+        .nav-link span { font-size: 12px; }
+    }
+    </style>
 </head>
 <body>
     <nav class="navbar">
-        <div class="nav-brand">
-            <img src="{% static 'images/logo.png' %}" 
-            alt="NTE Stock Management"
-            style="height: 38px; width: auto; object-fit: contain;">
-        </div>
-        <div class="nav-search">
-            <input type="text" id="searchInput" placeholder="Search products..."
-                   value="{{ search|default:'' }}">
-            <select id="categoryFilter">
-                <option value="">All Categories</option>
-            </select>
-            <button id="searchBtn" class="btn-search">
-                <i class="fas fa-search"></i>
-            </button>
-        </div>
-        <div class="nav-links">
-            <a href="{% url 'index' %}" class="nav-link {% if request.path == '/' %}active{% endif %}">
-                <i class="fas fa-th-large"></i>
-                <span>Products</span>
-            </a>
-            <a href="{% url 'sales-history' %}" class="nav-link {% if 'sales-history' in request.path %}active{% endif %}">
-                <i class="fas fa-chart-bar"></i>
-                <span>Sales History</span>
-            </a>
-            <a href="{% url 'low-stock' %}" class="nav-link {% if 'low-stock' in request.path %}active{% endif %}">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>Low Stock</span>
-            </a>
-
-            <!-- User profile dropdown -->
-            {% if request.user.is_authenticated %}
-            <div class="nav-user">
-                <div class="nav-user-toggle" onclick="toggleUserMenu()">
-                    <div class="user-avatar">
-                        {{ request.user.username|first|upper }}
-                    </div>
-                    <span class="user-name">{{ request.user.username }}</span>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="user-dropdown" id="userDropdown">
-                    <div class="user-dropdown-header">
-                        <strong>{{ request.user.username }}</strong>
-                        <small>{{ request.user.email }}</small>
-                    </div>
-                    <hr>
-                    {% if request.user.is_staff %}
-                    <a href="/admin/" class="dropdown-item">
-                        <i class="fas fa-cog"></i> Admin Panel
-                    </a>
-                    {% endif %}
-                    <a href="{% url 'logout' %}" class="dropdown-item logout">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </div>
+        <!-- Top bar: logo | search (desktop) | hamburger (mobile) -->
+        <div class="nav-top">
+            <div class="nav-brand">
+                <img src="{% static 'images/logo.png' %}"
+                     alt="NTE Stock Management">
             </div>
-            {% endif %}
+
+            <!-- Search: visible inline on desktop, inside collapsible on mobile -->
+            <div class="nav-search nav-search-desktop">
+                <input type="text" id="searchInput" placeholder="Search products..."
+                       value="{{ search|default:'' }}">
+                <select id="categoryFilter">
+                    <option value="">All Categories</option>
+                </select>
+                <button id="searchBtn" class="btn-search">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:6px;">
+                <!-- User avatar always visible on top bar -->
+                {% if request.user.is_authenticated %}
+                <div class="nav-user">
+                    <div class="nav-user-toggle" onclick="toggleUserMenu()">
+                        <div class="user-avatar">
+                            {{ request.user.username|first|upper }}
+                        </div>
+                        <span class="user-name">{{ request.user.username }}</span>
+                        <i class="fas fa-chevron-down" style="font-size:10px;"></i>
+                    </div>
+                    <div class="user-dropdown" id="userDropdown">
+                        <div class="user-dropdown-header">
+                            <strong>{{ request.user.username }}</strong>
+                            <small>{{ request.user.email }}</small>
+                        </div>
+                        <hr>
+                        {% if request.user.is_staff %}
+                        <a href="/admin/" class="dropdown-item">
+                            <i class="fas fa-cog"></i> Admin Panel
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'logout' %}" class="dropdown-item logout">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Hamburger (mobile only) -->
+                <button class="nav-hamburger" id="navHamburger" onclick="toggleMobileNav()" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Collapsible section: search (mobile) + nav links -->
+        <div class="nav-collapsible" id="navCollapsible">
+            <!-- Search bar for mobile -->
+            <div class="nav-search nav-search-mobile" style="display:none;">
+                <input type="text" id="searchInputMobile" placeholder="Search products..."
+                       value="{{ search|default:'' }}">
+                <select id="categoryFilterMobile">
+                    <option value="">All</option>
+                </select>
+                <button class="btn-search" onclick="triggerMobileSearch()">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+
+            <div class="nav-links">
+                <a href="{% url 'index' %}" class="nav-link {% if request.path == '/' %}active{% endif %}">
+                    <i class="fas fa-th-large"></i>
+                    <span>Products</span>
+                </a>
+                <a href="{% url 'sales-history' %}" class="nav-link {% if 'sales-history' in request.path %}active{% endif %}">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Sales History</span>
+                </a>
+                <a href="{% url 'low-stock' %}" class="nav-link {% if 'low-stock' in request.path %}active{% endif %}">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Low Stock</span>
+                </a>
+            </div>
         </div>
     </nav>
 
@@ -78,7 +351,6 @@
     <div id="toast" class="toast"></div>
 
     <script>
-        // Make CSRF token available globally before any other scripts
         function getCsrfToken() {
             const name = 'csrftoken=';
             const decodedCookie = decodeURIComponent(document.cookie);
@@ -91,25 +363,92 @@
             return '';
         }
         const csrftoken = getCsrfToken();
-    </script>
-    <script src="{% static 'js/api2.js' %}"></script>
-    <script src="{% static 'js/app2.js' %}"></script>
 
-    <script>
+        // ===== Mobile nav toggle =====
+        function toggleMobileNav() {
+            const collapsible = document.getElementById('navCollapsible');
+            const hamburger = document.getElementById('navHamburger');
+            const mobileSearch = document.querySelector('.nav-search-mobile');
+            const desktopSearch = document.querySelector('.nav-search-desktop');
+            const isMobile = window.innerWidth <= 768;
+
+            const isOpen = collapsible.classList.toggle('open');
+            hamburger.classList.toggle('open', isOpen);
+
+            // Show mobile search inside collapsible on mobile
+            if (mobileSearch && isMobile) {
+                mobileSearch.style.display = isOpen ? 'flex' : 'none';
+            }
+        }
+
+        // Sync mobile search inputs with desktop ones so existing JS still works
+        function triggerMobileSearch() {
+            const mobileInput = document.getElementById('searchInputMobile');
+            const mobileSelect = document.getElementById('categoryFilterMobile');
+            const desktopInput = document.getElementById('searchInput');
+            const desktopSelect = document.getElementById('categoryFilter');
+
+            if (desktopInput && mobileInput) desktopInput.value = mobileInput.value;
+            if (desktopSelect && mobileSelect) desktopSelect.value = mobileSelect.value;
+
+            document.getElementById('searchBtn').click();
+        }
+
+        // Mirror typing from desktop → mobile so both stay in sync
+        document.addEventListener('DOMContentLoaded', function() {
+            const di = document.getElementById('searchInput');
+            const mi = document.getElementById('searchInputMobile');
+            const ds = document.getElementById('categoryFilter');
+            const ms = document.getElementById('categoryFilterMobile');
+            if (di && mi) {
+                di.addEventListener('input', () => { if (mi) mi.value = di.value; });
+                mi.addEventListener('input', () => { if (di) di.value = mi.value; });
+            }
+            if (ds && ms) {
+                ds.addEventListener('change', () => { if (ms) ms.value = ds.value; });
+                ms.addEventListener('change', () => { if (ds) ds.value = ms.value; });
+            }
+        });
+
+        // Hide desktop search on mobile, show in collapsible
+        function handleResize() {
+            const desktopSearch = document.querySelector('.nav-search-desktop');
+            const mobileSearch = document.querySelector('.nav-search-mobile');
+            const isMobile = window.innerWidth <= 768;
+            if (desktopSearch) desktopSearch.style.display = isMobile ? 'none' : 'flex';
+            if (mobileSearch) {
+                const isOpen = document.getElementById('navCollapsible').classList.contains('open');
+                mobileSearch.style.display = (isMobile && isOpen) ? 'flex' : (!isMobile ? 'none' : 'none');
+            }
+        }
+
+        window.addEventListener('resize', handleResize);
+        document.addEventListener('DOMContentLoaded', handleResize);
+
         // User dropdown toggle
         function toggleUserMenu() {
             const dropdown = document.getElementById('userDropdown');
             dropdown.classList.toggle('show');
         }
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', function(e) {
             const userNav = document.querySelector('.nav-user');
             if (userNav && !userNav.contains(e.target)) {
-                document.getElementById('userDropdown').classList.remove('show');
+                const dd = document.getElementById('userDropdown');
+                if (dd) dd.classList.remove('show');
+            }
+            // Close mobile nav when clicking outside
+            const navbar = document.querySelector('.navbar');
+            if (navbar && !navbar.contains(e.target)) {
+                const collapsible = document.getElementById('navCollapsible');
+                const hamburger = document.getElementById('navHamburger');
+                if (collapsible) collapsible.classList.remove('open');
+                if (hamburger) hamburger.classList.remove('open');
             }
         });
     </script>
+    <script src="{% static 'js/api2.js' %}"></script>
+    <script src="{% static 'js/app2.js' %}"></script>
 
     {% block extra_js %}{% endblock %}
 </body>
