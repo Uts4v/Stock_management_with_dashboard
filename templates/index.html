@@ -1126,7 +1126,7 @@ async function updateMinStock(productId) {
 }
 
 // ===== Inline Stock Editing =====
-let __stockEditCache = {};
+window.__stockEditCache = window.__stockEditCache || {};
 
 function showStockEdit(productId) {
     const display = document.getElementById(`stock-display-${productId}`);
@@ -1273,7 +1273,7 @@ async function updateVariantMinStockMobile(variantId) {
 }
 
 // ===== Inline Variant Stock Editing =====
-let __variantEditCache = {};
+window.__variantEditCache = window.__variantEditCache || {};
 
 function showVariantStockEdit(variantId) {
     const display = document.getElementById(`vstock-display-${variantId}`);
