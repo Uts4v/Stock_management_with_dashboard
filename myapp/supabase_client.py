@@ -34,6 +34,29 @@ def get_supabase_client():
     return _client
 
 
+def _compute_variant_fields(variant: dict, parent_product: dict = None):
+    """Compute is_low_stock, status, effective_cost_price, and effective_selling_price for a variant."""
+    stock = variant.get('stock', 0)
+    min_stock = variant.get('min_stock', 5)
+    
+    variant['is_low_stock'] = stock < min_stock
+    variant['status'] = 'Low' if variant['is_low_stock'] else 'OK'
+    
+    # Cost price
+    cost_price = variant.get('cost_price')
+    if cost_price is None and parent_product:
+        cost_price = parent_product.get('cost_price')
+    variant['effective_cost_price'] = cost_price
+    
+    # Selling price
+    selling_price = variant.get('selling_price')
+    if selling_price is None and parent_product:
+        selling_price = parent_product.get('selling_price')
+    variant['effective_selling_price'] = selling_price
+    
+    return variant
+
+
 # ===== Product Operations =====
 
 def get_all_products():
@@ -57,8 +80,12 @@ def get_all_products():
     # Attach variants to each product and compute status
     for product in products:
         product_id = product.get('id')
-        product['variants'] = variants_by_product.get(product_id, [])
-        product['has_variants'] = len(product['variants']) > 0
+        product_variants = variants_by_product.get(product_id, [])
+        for v in product_variants:
+            _compute_variant_fields(v, product)
+            
+        product['variants'] = product_variants
+        product['has_variants'] = len(product_variants) > 0
         
         # Compute status based on stock and min_stock
         stock = product.get('stock', 0)
@@ -260,18 +287,27 @@ def get_all_variants():
     """Fetch all product variants from Supabase."""
     client = get_supabase_client()
     response = client.table('myapp_productvariant').select(
-        "*, myapp_product(name)"
+        "*, myapp_product(name, cost_price, selling_price)"
     ).execute()
-    return response.data
+    variants = response.data or []
+    for v in variants:
+        parent = v.get('myapp_product') or {}
+        _compute_variant_fields(v, parent)
+    return variants
 
 
 def get_variant_by_id(variant_id: int):
     """Fetch a single variant by ID."""
     client = get_supabase_client()
     response = client.table('myapp_productvariant').select(
-        "*, myapp_product(name)"
+        "*, myapp_product(name, cost_price, selling_price)"
     ).eq('id', variant_id).execute()
-    return response.data[0] if response.data else None
+    if response.data:
+        v = response.data[0]
+        parent = v.get('myapp_product') or {}
+        _compute_variant_fields(v, parent)
+        return v
+    return None
 
 
 def get_variants_by_ids(variant_ids: list):
@@ -280,18 +316,26 @@ def get_variants_by_ids(variant_ids: list):
         return []
     client = get_supabase_client()
     response = client.table('myapp_productvariant').select(
-        "*, myapp_product(name)"
+        "*, myapp_product(name, cost_price, selling_price)"
     ).in_('id', variant_ids).execute()
-    return response.data or []
+    variants = response.data or []
+    for v in variants:
+        parent = v.get('myapp_product') or {}
+        _compute_variant_fields(v, parent)
+    return variants
 
 
 def get_variants_by_product(product_id: int):
     """Fetch all variants for a specific product."""
     client = get_supabase_client()
     response = client.table('myapp_productvariant').select(
-        "*, myapp_product(name)"
+        "*, myapp_product(name, cost_price, selling_price)"
     ).eq('product_id', product_id).execute()
-    return response.data
+    variants = response.data or []
+    for v in variants:
+        parent = v.get('myapp_product') or {}
+        _compute_variant_fields(v, parent)
+    return variants
 
 
 def create_variant(data: dict):

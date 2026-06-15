@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadLowStockProducts();
 });
 
-// ===== Load Low Stock Products =====
+// ===== Load Low Stock Products & Variants =====
 async function loadLowStockProducts() {
     const spinner = document.getElementById('loadingSpinner');
     const emptyState = document.getElementById('emptyState');
@@ -113,17 +113,53 @@ async function loadLowStockProducts() {
         const data = await API.getProducts(params.search, params.category);
         allProducts = data;
         
-        // Filter low stock products
-        const lowStockProducts = data.filter(p => p.status === 'Low');
+        // Filter low stock items (including variants)
+        const lowStockItems = [];
+        data.forEach(product => {
+            if (product.has_variants && product.variants && product.variants.length > 0) {
+                product.variants.forEach(variant => {
+                    if (variant.status === 'Low') {
+                        lowStockItems.push({
+                            id: product.id,
+                            variant_id: variant.id,
+                            name: `${product.name} (${variant.variant_value})`,
+                            category: product.category,
+                            barcode: variant.barcode || product.barcode,
+                            selling_price: variant.effective_selling_price || product.selling_price,
+                            stock: variant.stock,
+                            min_stock: variant.min_stock,
+                            is_variant: true,
+                            variant_value: variant.variant_value,
+                            variant_type: variant.variant_type
+                        });
+                    }
+                });
+            } else if (!product.has_variants) {
+                if (product.status === 'Low') {
+                    lowStockItems.push({
+                        id: product.id,
+                        variant_id: null,
+                        name: product.name,
+                        category: product.category,
+                        barcode: product.barcode,
+                        selling_price: product.selling_price,
+                        stock: product.stock,
+                        min_stock: product.min_stock,
+                        is_variant: false
+                    });
+                }
+            }
+        });
         
         spinner.style.display = 'none';
         
-        if (lowStockProducts.length === 0) {
+        if (lowStockItems.length === 0) {
             emptyState.style.display = 'block';
+            document.getElementById('lowStockCount').textContent = '0';
         } else {
-            renderLowStockList(lowStockProducts);
-            renderLowStockTable(lowStockProducts);
-            document.getElementById('lowStockCount').textContent = lowStockProducts.length;
+            renderLowStockList(lowStockItems);
+            renderLowStockTable(lowStockItems);
+            document.getElementById('lowStockCount').textContent = lowStockItems.length;
         }
     } catch (error) {
         spinner.style.display = 'none';
@@ -132,64 +168,66 @@ async function loadLowStockProducts() {
 }
 
 // ===== Render Low Stock List =====
-function renderLowStockList(products) {
+function renderLowStockList(items) {
     const listContainer = document.getElementById('lowStockList');
     listContainer.innerHTML = '';
     listContainer.style.display = 'flex';
     
-    products.forEach(product => {
-        const shortage = product.min_stock - product.stock;
+    items.forEach(item => {
+        const shortage = item.min_stock - item.stock;
+        const inputId = item.is_variant ? `restock-v-${item.variant_id}` : `restock-${item.id}`;
         
-        const item = document.createElement('div');
-        item.className = 'low-stock-item';
-        item.innerHTML = `
+        const div = document.createElement('div');
+        div.className = 'low-stock-item';
+        div.innerHTML = `
             <div class="product-info">
-                <h4>${escapeHtml(product.name)}</h4>
-                <p>${product.category ? escapeHtml(product.category) : 'Uncategorized'} • ${product.barcode || 'No barcode'}</p>
+                <h4>${escapeHtml(item.name)}</h4>
+                <p>${item.category ? escapeHtml(item.category) : 'Uncategorized'} • ${item.barcode || 'No barcode'}</p>
             </div>
             <div class="stock-info">
-                <div class="current">${product.stock}</div>
-                <div class="min">Min: ${product.min_stock} (Need ${shortage} more)</div>
+                <div class="current">${item.stock}</div>
+                <div class="min">Min: ${item.min_stock} (Need ${shortage} more)</div>
             </div>
             <div style="margin-left: 20px;">
                 <div class="transaction-input">
-                    <input type="number" id="restock-${product.id}" placeholder="Qty" min="1" style="width: 70px;">
-                    <button class="btn btn-success btn-sm" onclick="restockProduct(${product.id})">
+                    <input type="number" id="${inputId}" placeholder="Qty" min="1" style="width: 70px;">
+                    <button class="btn btn-success btn-sm" onclick="restockItem(${item.id}, ${item.variant_id}, ${item.is_variant})">
                         <i class="fas fa-plus"></i> Restock
                     </button>
                 </div>
             </div>
         `;
         
-        listContainer.appendChild(item);
+        listContainer.appendChild(div);
     });
 }
 
 // ===== Render Low Stock Table =====
-function renderLowStockTable(products) {
+function renderLowStockTable(items) {
     const tbody = document.getElementById('lowStockTableBody');
     const table = document.getElementById('lowStockTable');
     
     tbody.innerHTML = '';
     table.style.display = 'table';
     
-    products.forEach((product, index) => {
-        const shortage = product.min_stock - product.stock;
+    items.forEach((item, index) => {
+        const shortage = item.min_stock - item.stock;
+        const inputId = item.is_variant ? `table-restock-v-${item.variant_id}` : `table-restock-${item.id}`;
         
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${index + 1}</td>
-            <td><strong>${escapeHtml(product.name)}</strong></td>
-            <td>${product.category || '-'}</td>
-            <td>${product.barcode || '-'}</td>
-            <td>${formatCurrency(product.selling_price)}</td>
-            <td class="stock-value low">${product.stock}</td>
-            <td>${product.min_stock}</td>
+            <td><strong>${escapeHtml(item.name)}</strong></td>
+            <td>${item.category || '-'}</td>
+            <td>${item.barcode || '-'}</td>
+            <td>${formatCurrency(item.selling_price)}</td>
+            <td class="stock-value low">${item.stock}</td>
+            <td>${item.min_stock}</td>
             <td style="color: var(--danger-color); font-weight: 600;">-${shortage}</td>
             <td>
                 <div class="transaction-input">
-                    <input type="number" id="table-restock-${product.id}" placeholder="Qty" min="1" style="width: 60px;">
-                    <button class="btn btn-sm btn-success" onclick="restockFromTable(${product.id})">
+                    <input type="number" id="${inputId}" placeholder="Qty" min="1" style="width: 60px;">
+                    <button class="btn btn-sm btn-success" onclick="restockFromTable(${item.id}, ${item.variant_id}, ${item.is_variant})">
                         <i class="fas fa-plus"></i>
                     </button>
                 </div>
@@ -200,9 +238,10 @@ function renderLowStockTable(products) {
     });
 }
 
-// ===== Product Actions =====
-async function restockProduct(productId) {
-    const input = document.getElementById(`restock-${productId}`);
+// ===== Product/Variant Actions =====
+async function restockItem(id, variantId, isVariant) {
+    const inputId = isVariant ? `restock-v-${variantId}` : `restock-${id}`;
+    const input = document.getElementById(inputId);
     const quantity = parseInt(input.value);
     
     if (!quantity || quantity <= 0) {
@@ -211,16 +250,22 @@ async function restockProduct(productId) {
     }
     
     try {
-        await API.restockProduct(productId, quantity);
-        showToast('Product restocked successfully!');
+        if (isVariant) {
+            await API.restockVariant(variantId, quantity);
+            showToast('Variant restocked successfully!');
+        } else {
+            await API.restockProduct(id, quantity);
+            showToast('Product restocked successfully!');
+        }
         loadLowStockProducts();
     } catch (error) {
         showToast('Failed to restock: ' + error.message, 'error');
     }
 }
 
-async function restockFromTable(productId) {
-    const input = document.getElementById(`table-restock-${productId}`);
+async function restockFromTable(id, variantId, isVariant) {
+    const inputId = isVariant ? `table-restock-v-${variantId}` : `table-restock-${id}`;
+    const input = document.getElementById(inputId);
     const quantity = parseInt(input.value);
     
     if (!quantity || quantity <= 0) {
@@ -229,8 +274,13 @@ async function restockFromTable(productId) {
     }
     
     try {
-        await API.restockProduct(productId, quantity);
-        showToast('Product restocked successfully!');
+        if (isVariant) {
+            await API.restockVariant(variantId, quantity);
+            showToast('Variant restocked successfully!');
+        } else {
+            await API.restockProduct(id, quantity);
+            showToast('Product restocked successfully!');
+        }
         loadLowStockProducts();
     } catch (error) {
         showToast('Failed to restock: ' + error.message, 'error');
