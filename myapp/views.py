@@ -20,6 +20,45 @@ from .serializers import (
     RevenueReportSerializer, TopProductSerializer,
     ProductDictSerializer, ProductVariantDictSerializer,
 )
+@action(detail=True, methods=['post'])
+def sell(self, request, pk=None):
+    try:
+        serializer = SellSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        quantity = serializer.validated_data['quantity']
+        note = serializer.validated_data.get('note', '')
+
+        product = Product.objects.get(pk=pk)
+        if product.stock < quantity:
+            return Response({'error': f'Insufficient stock. Available: {product.stock}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        product.stock -= quantity
+        product.save()
+
+        txn = StockTransaction.objects.create(
+            product=product,
+            transaction_type=StockTransaction.TransactionType.SALE,
+            quantity=quantity, note=note,
+            created_by=request.user if request.user.is_authenticated else None
+        )
+
+        try:
+            update_product(product.id, {'stock': product.stock})
+        except Exception as e:
+            print(f"Supabase sync error (sell product stock): {e}")
+
+        try:
+            _sync_transaction(txn)
+        except Exception as e:
+            print(f"Supabase sync error (txn): {e}")
+
+        return Response({'message': f'Sold {quantity} units of {product.name}', 'product': ProductSerializer(product).data})
+
+    except Exception as e:
+        import traceback
+        print(f"SELL ERROR: {traceback.format_exc()}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Supabase integration
 from .supabase_client import (
