@@ -11,11 +11,18 @@ SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 
 
+_client = None
+
+
 def get_supabase_client():
     """
-    Returns a Supabase client instance.
+    Returns a Supabase client instance (cached singleton).
     Only creates the client when called (lazy initialization).
     """
+    global _client
+    if _client is not None:
+        return _client
+
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise ValueError(
             "SUPABASE_URL and SUPABASE_KEY environment variables are not set. "
@@ -23,8 +30,8 @@ def get_supabase_client():
         )
     
     from supabase import create_client, Client
-    client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-    return client
+    _client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    return _client
 
 
 # ===== Product Operations =====
@@ -265,6 +272,17 @@ def get_variant_by_id(variant_id: int):
         "*, myapp_product(name)"
     ).eq('id', variant_id).execute()
     return response.data[0] if response.data else None
+
+
+def get_variants_by_ids(variant_ids: list):
+    """Fetch multiple variants by their IDs in a single query."""
+    if not variant_ids:
+        return []
+    client = get_supabase_client()
+    response = client.table('myapp_productvariant').select(
+        "*, myapp_product(name)"
+    ).in_('id', variant_ids).execute()
+    return response.data or []
 
 
 def get_variants_by_product(product_id: int):

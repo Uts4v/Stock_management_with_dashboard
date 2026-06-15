@@ -177,7 +177,8 @@ async function loadProductsForFilter() {
         const data = await response.json();
         
         const select = document.getElementById('productFilter');
-        data.results?.forEach(product => {
+        const products = Array.isArray(data) ? data : (data.results || []);
+        products.forEach(product => {
             const option = document.createElement('option');
             option.value = product.id;
             option.textContent = product.name;
@@ -423,7 +424,10 @@ async function deleteTransaction(id) {
     try {
         const response = await fetch('/api/transactions/delete/', {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
             body: JSON.stringify({ ids: [id] })
         });
         
@@ -448,7 +452,10 @@ async function deleteSelected() {
     try {
         const response = await fetch('/api/transactions/delete/', {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
             body: JSON.stringify({ ids: Array.from(selectedIds) })
         });
         
@@ -480,7 +487,10 @@ async function confirmClearAll() {
     try {
         const response = await fetch('/api/transactions/delete/', {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
             body: JSON.stringify({ clear_all: true })
         });
         

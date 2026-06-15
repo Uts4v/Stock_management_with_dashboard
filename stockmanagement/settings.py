@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-7gl$0141q*+(z!)4jg3*4@gi#hido*y+30*%m)i2)ht=92^zq4')
 
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -74,12 +74,13 @@ WSGI_APPLICATION = 'stockmanagement.wsgi.application'
 # ===== DATABASE =====
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-if DATABASE_URL and not DEBUG:
+if DATABASE_URL:
     # Production - Supabase PostgreSQL
     DATABASES = {
         'default': dj_database_url.parse(
             DATABASE_URL,
-            conn_max_age=0,
+            conn_max_age=600,
+            conn_health_checks=True,
         )
     }
 else:

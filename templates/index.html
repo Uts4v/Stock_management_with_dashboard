@@ -1242,8 +1242,7 @@ async function updateMinStockMobile(productId) {
     const val = parseInt(input.value);
     if (isNaN(val) || val < 0) { showToast('Invalid value', 'error'); return; }
     try {
-        const product = products.find(p => p.id === productId);
-        await API.updateProduct(productId, { ...product, min_stock: val });
+        await API.updateProductMinStock(productId, val);
         showToast('Min stock updated!');
         loadProducts();
     } catch (error) { showToast('Failed: ' + error.message, 'error'); }

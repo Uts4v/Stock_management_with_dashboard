@@ -35,7 +35,14 @@ const API = {
             credentials: 'include',
         };
         
-        const config = { ...defaultOptions, ...options };
+        const config = {
+            ...defaultOptions,
+            ...options,
+            headers: {
+                ...defaultOptions.headers,
+                ...(options.headers || {})
+            }
+        };
         
         try {
             const response = await fetch(url, config);

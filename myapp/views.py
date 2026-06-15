@@ -27,7 +27,7 @@ from .supabase_client import (
     get_supabase_client,
     get_all_products, get_product_by_id,
     create_product, update_product, delete_product,
-    get_all_variants, get_variant_by_id,
+    get_all_variants, get_variant_by_id, get_variants_by_ids,
     create_variant, update_variant, delete_variant,
     get_all_transactions, create_transaction,
 )
@@ -622,6 +622,17 @@ class SalesHistoryView(APIView):
             result = query.limit(500).execute()
             raw = result.data or []
 
+            # Bulk fetch variants to avoid N+1 queries
+            variant_ids = list({t.get('variant_id') for t in raw if t.get('variant_id')})
+            variants_lookup = {}
+            if variant_ids:
+                try:
+                    variants_data = get_variants_by_ids(variant_ids)
+                    for v in variants_data:
+                        variants_lookup[v.get('id')] = v
+                except Exception as e:
+                    print(f"Error bulk fetching variants: {e}")
+
             transactions = []
             for t in raw:
                 product_data  = t.get('myapp_product') or {}
@@ -631,14 +642,18 @@ class SalesHistoryView(APIView):
                 variant_id    = t.get('variant_id')
                 variant_label = None
                 if variant_id:
-                    try:
-                        v = get_variant_by_id(variant_id)
-                        if v:
-                            variant_label = f"{v.get('variant_type')}: {v.get('variant_value')}"
-                            if v.get('selling_price'):
-                                selling_price = float(v['selling_price'])
-                    except Exception:
-                        pass
+                    v = variants_lookup.get(variant_id)
+                    if not v:
+                        try:
+                            v = get_variant_by_id(variant_id)
+                            if v:
+                                variants_lookup[variant_id] = v
+                        except Exception:
+                            pass
+                    if v:
+                        variant_label = f"{v.get('variant_type')}: {v.get('variant_value')}"
+                        if v.get('selling_price'):
+                            selling_price = float(v['selling_price'])
 
                 revenue = (
                     round(float(t.get('quantity', 0)) * selling_price, 2)
