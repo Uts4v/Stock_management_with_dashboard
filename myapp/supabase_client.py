@@ -59,50 +59,91 @@ def _compute_variant_fields(variant: dict, parent_product: dict = None):
 
 # ===== Product Operations =====
 
-def get_all_products():
-    """Fetch all products from Supabase with their variants."""
-    client = get_supabase_client()
-    response = client.table('myapp_product').select("*").execute()
-    products = response.data
-    
+def _compute_product_fields(product: dict):
+    """Compute has_variants, status, and low-stock flags for one product dict."""
+    variants = product.get('variants') or []
+    product['has_variants'] = len(variants) > 0
+
+    stock = product.get('stock') or 0
+    min_stock = product.get('min_stock') or 0
+    if stock <= 0:
+        product['status'] = 'Out of Stock'
+    elif stock <= min_stock:
+        product['status'] = 'Low'
+    elif stock <= min_stock * 1.5:
+        product['status'] = 'Near Low'
+    else:
+        product['status'] = 'OK'
+
+    product['is_low_stock'] = stock <= min_stock
+    return product
+
+
+def _attach_variants_to_products(products: list):
+    """Attach variants only for the products being returned, instead of loading all variants every time."""
     if not products:
         return []
-    
-    # Fetch all variants
-    variants_response = client.table('myapp_productvariant').select("*").execute()
+
+    client = get_supabase_client()
+    product_ids = [p.get('id') for p in products if p.get('id') is not None]
     variants_by_product = {}
-    for variant in variants_response.data:
-        product_id = variant.get('product_id')
-        if product_id not in variants_by_product:
-            variants_by_product[product_id] = []
-        variants_by_product[product_id].append(variant)
-    
-    # Attach variants to each product and compute status
+
+    if product_ids:
+        variants_response = (
+            client.table('myapp_productvariant')
+            .select('*')
+            .in_('product_id', product_ids)
+            .execute()
+        )
+        for variant in variants_response.data or []:
+            product_id = variant.get('product_id')
+            variants_by_product.setdefault(product_id, []).append(variant)
+
     for product in products:
         product_id = product.get('id')
         product_variants = variants_by_product.get(product_id, [])
         for v in product_variants:
             _compute_variant_fields(v, product)
-            
         product['variants'] = product_variants
-        product['has_variants'] = len(product_variants) > 0
-        
-        # Compute status based on stock and min_stock
-        stock = product.get('stock', 0)
-        min_stock = product.get('min_stock', 0)
-        if stock <= 0:
-            product['status'] = 'Out of Stock'
-        elif stock <= min_stock:
-            product['status'] = 'Low'
-        elif stock <= min_stock * 1.5:
-            product['status'] = 'Near Low'
-        else:
-            product['status'] = 'OK'
-        
-        # Also compute is_low_stock flag
-        product['is_low_stock'] = stock <= min_stock
-    
+        _compute_product_fields(product)
+
     return products
+
+
+def get_all_products():
+    """Fetch all products from Supabase with their variants. Kept for backward compatibility."""
+    return get_products_filtered()
+
+
+def get_products_filtered(search: str = None, category: str = None, limit: int = None):
+    """
+    Fetch filtered products from Supabase with variants.
+    This avoids fetching every product and filtering in Python.
+    """
+    client = get_supabase_client()
+    query = client.table('myapp_product').select('*').order('created_at', desc=True)
+
+    if search:
+        safe = str(search).replace('%', '').replace(',', ' ').strip()
+        if safe:
+            query = query.or_(f"name.ilike.%{safe}%,category.ilike.%{safe}%")
+
+    if category:
+        query = query.eq('category', category)
+
+    if limit:
+        query = query.limit(int(limit))
+
+    response = query.execute()
+    products = response.data or []
+    return _attach_variants_to_products(products)
+
+
+def get_categories():
+    """Fetch only product categories. This is much faster than loading products + variants."""
+    client = get_supabase_client()
+    response = client.table('myapp_product').select('category').execute()
+    return sorted({p.get('category') for p in (response.data or []) if p.get('category')})
 
 
 def get_product_by_id(product_id: int):

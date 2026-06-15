@@ -68,7 +68,7 @@ function initGlobalSearch() {
     searchInput.addEventListener('input', (e) => {
         clearTimeout(App.searchTimeout);
         App.searchTimeout = setTimeout(() => {
-            performSearch(e.target.value, categoryFilter.value);
+            performSearch(e.target.value, categoryFilter ? categoryFilter.value : '');
         }, 300);
     });
     
@@ -76,7 +76,7 @@ function initGlobalSearch() {
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             clearTimeout(App.searchTimeout);
-            performSearch(e.target.value, categoryFilter.value);
+            performSearch(e.target.value, categoryFilter ? categoryFilter.value : '');
         }
     });
     
@@ -84,7 +84,7 @@ function initGlobalSearch() {
     if (searchBtn) {
         searchBtn.addEventListener('click', () => {
             clearTimeout(App.searchTimeout);
-            performSearch(searchInput.value, categoryFilter.value);
+            performSearch(searchInput.value, categoryFilter ? categoryFilter.value : '');
         });
     }
     
@@ -98,7 +98,7 @@ function initGlobalSearch() {
 
 async function loadCategories() {
     const categoryFilter = document.getElementById('categoryFilter');
-    if (!categoryFilter) return;
+    if (!categoryFilter || typeof API === 'undefined') return;
     
     try {
         const categories = await API.getCategories();
@@ -151,11 +151,11 @@ function formatCurrency(amount) {
     return 'NPR ' + new Intl.NumberFormat('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
-    }).format(amount);
+    }).format(amount || 0);
 }
 
 function formatNumber(num) {
-    return new Intl.NumberFormat('en-US').format(num);
+    return new Intl.NumberFormat('en-US').format(num || 0);
 }
 
 // ===== Status Badge Helper =====
@@ -163,7 +163,8 @@ function getStatusBadge(status) {
     const statusClass = {
         'OK': 'badge-ok',
         'Near Low': 'badge-near',
-        'Low': 'badge-low'
+        'Low': 'badge-low',
+        'Out of Stock': 'badge-low'
     };
     return `<span class="badge ${statusClass[status] || 'badge-ok'}">${status}</span>`;
 }
@@ -180,3 +181,4 @@ window.getQueryParams = getQueryParams;
 window.formatCurrency = formatCurrency;
 window.formatNumber = formatNumber;
 window.getStatusBadge = getStatusBadge;
+window.debounce = debounce;

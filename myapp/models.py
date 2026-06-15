@@ -30,6 +30,8 @@ class Product(models.Model):
 
     @property
     def status(self):
+        if self.stock <= 0:
+            return 'Out of Stock'
         if self.is_low_stock:
             return 'Low'
         elif self.is_near_low_stock:
@@ -45,10 +47,9 @@ class Product(models.Model):
 
 class ProductVariant(models.Model):
     """Product variant model for managing product variations (size, weight, color, etc.)"""
-    
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
-    variant_type = models.CharField(max_length=50, default='weight')  # weight, size, color, etc.
-    variant_value = models.CharField(max_length=100)  # 80gm, XL, Red, etc.
+    variant_type = models.CharField(max_length=50, default='weight')
+    variant_value = models.CharField(max_length=100)
     barcode = models.CharField(max_length=100, blank=True, default='')
     stock = models.IntegerField(default=0)
     min_stock = models.IntegerField(default=5)
@@ -70,6 +71,8 @@ class ProductVariant(models.Model):
 
     @property
     def status(self):
+        if self.stock <= 0:
+            return 'Out of Stock'
         if self.is_low_stock:
             return 'Low'
         return 'OK'
@@ -85,7 +88,6 @@ class ProductVariant(models.Model):
 
 class StockTransaction(models.Model):
     """Stock transaction model for tracking sales, restocks, and adjustments"""
-    
     class TransactionType(models.TextChoices):
         SALE = 'SALE', 'Sale'
         RESTOCK = 'RESTOCK', 'Restock'
@@ -105,5 +107,3 @@ class StockTransaction(models.Model):
     def __str__(self):
         variant_info = f" ({self.variant.variant_value})" if self.variant else ""
         return f"{self.transaction_type} - {self.product.name}{variant_info} - {self.quantity}"
-
-

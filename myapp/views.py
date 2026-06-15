@@ -10,6 +10,7 @@ from django.http import HttpResponse
 from datetime import timedelta, datetime, date
 import traceback
 import requests
+from threading import Thread
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
@@ -25,7 +26,7 @@ from .serializers import (
 # Supabase integration
 from .supabase_client import (
     get_supabase_client,
-    get_all_products, get_product_by_id,
+    get_all_products, get_product_by_id, get_products_filtered, get_categories,
     create_product, update_product, delete_product,
     get_all_variants, get_variant_by_id, get_variants_by_ids,
     create_variant, update_variant, delete_variant,
@@ -40,6 +41,17 @@ try:
 except ImportError:
     OPENPYXL_AVAILABLE = False
 
+
+
+
+def _run_async(fn, *args, **kwargs):
+    """Run slow Supabase sync work after the local DB response is ready."""
+    def runner():
+        try:
+            fn(*args, **kwargs)
+        except Exception as e:
+            print(f"Background sync error: {e}")
+    Thread(target=runner, daemon=True).start()
 
 # ─────────────────────────────────────────────
 #  Helper: sync StockTransaction to Supabase
@@ -131,16 +143,12 @@ class ProductViewSet(viewsets.ModelViewSet):
         return queryset
 
     def list(self, request, *args, **kwargs):
-        """Always read from Supabase (single source of truth), fallback to SQLite."""
+        """Read filtered products from Supabase, fallback to SQLite."""
         try:
-            products = get_all_products()
             search = request.query_params.get('search', None)
             category = request.query_params.get('category', None)
-            if search:
-                sl = search.lower()
-                products = [p for p in products if sl in p.get('name', '').lower() or sl in p.get('category', '').lower()]
-            if category:
-                products = [p for p in products if p.get('category', '').lower() == category.lower()]
+            limit = request.query_params.get('limit', None)
+            products = get_products_filtered(search=search, category=category, limit=limit)
             serializer = ProductDictSerializer(products, many=True)
             return Response(serializer.data)
         except Exception as e:
@@ -227,11 +235,8 @@ class ProductViewSet(viewsets.ModelViewSet):
                 created_by=request.user if request.user.is_authenticated else None
             )
 
-            try:
-                update_product(product.id, {'stock': product.stock})
-            except Exception as e:
-                print(f"Supabase sync error (sell product stock): {e}")
-
+            _run_async(update_product, product.id, {'stock': product.stock})
+            _run_async(_sync_transaction, txn)
 
             return Response({'message': f'Sold {quantity} units of {product.name}', 'product': ProductSerializer(product).data})
 
@@ -264,12 +269,8 @@ class ProductViewSet(viewsets.ModelViewSet):
                 created_by=request.user if request.user.is_authenticated else None
             )
 
-            try:
-                update_product(product.id, {'stock': product.stock})
-            except Exception as e:
-                print(f"Supabase sync error (restock product stock): {e}")
-
-                
+            _run_async(update_product, product.id, {'stock': product.stock})
+            _run_async(_sync_transaction, txn)
 
             return Response({'message': f'Restocked {quantity} units of {product.name}', 'product': ProductSerializer(product).data})
 
@@ -297,10 +298,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         product.stock = new_stock
         product.save()
-        try:
-            update_product(product.id, {'stock': new_stock})
-        except Exception as e:
-            print(f"Supabase sync error (update stock): {e}")
+        _run_async(update_product, product.id, {'stock': new_stock})
         return Response({'message': 'Stock updated', 'stock': new_stock})
 
     # ── update_min_stock ──────────────────────
@@ -323,10 +321,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         product.min_stock = min_stock
         product.save()
-        try:
-            update_product(product.id, {'min_stock': min_stock})
-        except Exception as e:
-            print(f"Supabase sync error (update min_stock): {e}")
+        _run_async(update_product, product.id, {'min_stock': min_stock})
         return Response({'message': 'Min stock updated', 'min_stock': min_stock})
 
 
@@ -450,13 +445,9 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
                 created_by=request.user if request.user.is_authenticated else None
             )
 
-            try:
-                update_variant(variant.id, {'stock': variant.stock})
-                update_product(variant.product_id, {'stock': variant.product.stock})
-            except Exception as e:
-                print(f"Supabase sync error (sell variant): {e}")
-
-
+            _run_async(update_variant, variant.id, {'stock': variant.stock})
+            _run_async(update_product, variant.product_id, {'stock': variant.product.stock})
+            _run_async(_sync_transaction, txn)
 
             return Response({
                 'message': f'Sold {quantity} units of {variant.product.name} ({variant.variant_type}: {variant.variant_value})',
@@ -493,12 +484,9 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
                 created_by=request.user if request.user.is_authenticated else None
             )
 
-            try:
-                update_variant(variant.id, {'stock': variant.stock})
-                update_product(variant.product_id, {'stock': variant.product.stock})
-            except Exception as e:
-                print(f"Supabase sync error (restock variant): {e}")
-
+            _run_async(update_variant, variant.id, {'stock': variant.stock})
+            _run_async(update_product, variant.product_id, {'stock': variant.product.stock})
+            _run_async(_sync_transaction, txn)
 
             return Response({
                 'message': f'Restocked {quantity} units of {variant.product.name} ({variant.variant_type}: {variant.variant_value})',
@@ -531,11 +519,8 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
         variant.save()
         variant.product.update_total_stock()
 
-        try:
-            update_variant(variant.id, {'stock': new_stock})
-            update_product(variant.product_id, {'stock': variant.product.stock})
-        except Exception as e:
-            print(f"Supabase sync error (update variant stock): {e}")
+        _run_async(update_variant, variant.id, {'stock': new_stock})
+        _run_async(update_product, variant.product_id, {'stock': variant.product.stock})
         return Response({'message': 'Stock updated', 'stock': new_stock})
 
     # ── update_min_stock ──────────────────────
@@ -558,10 +543,7 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
 
         variant.min_stock = min_stock
         variant.save()
-        try:
-            update_variant(variant.id, {'min_stock': min_stock})
-        except Exception as e:
-            print(f"Supabase sync error (update variant min_stock): {e}")
+        _run_async(update_variant, variant.id, {'min_stock': min_stock})
         return Response({'message': 'Min stock updated', 'min_stock': min_stock})
 
 
@@ -571,11 +553,9 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
 class CategoriesView(APIView):
     def get(self, request):
         try:
-            products = get_all_products()
-            categories = sorted(set(p.get('category', '') for p in products if p.get('category')))
-            return Response(categories)
-        except Exception:
-            pass
+            return Response(get_categories())
+        except Exception as e:
+            print(f"Supabase categories error, falling back to SQLite: {e}")
         categories = Product.objects.values_list('category', flat=True).distinct().order_by('category')
         return Response(list(categories))
 

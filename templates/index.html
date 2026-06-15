@@ -701,29 +701,35 @@ var products = [];
 var expandedRows = new Set();
 var currentVariantProductId = null;
 var googleSheetsConfig = window.googleSheetsConfig || { sheetId: '', apiKey: '' };
-
+ 
+// ─── action lock: prevents double-tap / rapid double-clicks ───
+var _actionLock = false;
+function _lock()   { _actionLock = true;  }
+function _unlock() { _actionLock = false; }
+function _locked() { return _actionLock;  }
+ 
 // ===== Initialize =====
 document.addEventListener('DOMContentLoaded', () => {
     loadProducts();
     loadCategoriesForDatalist();
 });
-
-// ===== Load Products =====
+ 
+// ===== Load Products (full fetch — only called on page load / add / delete) =====
 async function loadProducts() {
-    const spinner = document.getElementById('loadingSpinner');
-    const emptyState = document.getElementById('emptyState');
-    const table = document.getElementById('productsTable');
-    const mobileProducts = document.getElementById('mobileProducts');
-
-    spinner.style.display = 'flex';
+    const spinner      = document.getElementById('loadingSpinner');
+    const emptyState   = document.getElementById('emptyState');
+    const table        = document.getElementById('productsTable');
+    const mobileWrap   = document.getElementById('mobileProducts');
+ 
+    spinner.style.display    = 'flex';
     emptyState.style.display = 'none';
-    table.style.display = 'none';
-    mobileProducts.innerHTML = '';
-
+    table.style.display      = 'none';
+    mobileWrap.innerHTML     = '';
+ 
     try {
         const params = getQueryParams();
-        const data = await API.getProducts(params.search, params.category);
-        products = data;
+        const data   = await API.getProducts(params.search, params.category);
+        products     = data;
         renderProducts(data);
         renderMobileProducts(data);
         updateSummaryCards(data);
@@ -733,38 +739,37 @@ async function loadProducts() {
         } else {
             table.style.display = 'table';
         }
-    } catch (error) {
+    } catch (err) {
         spinner.style.display = 'none';
-        showToast('Failed to load products: ' + error.message, 'error');
+        showToast('Failed to load products: ' + err.message, 'error');
     }
 }
-
-// ===== Render Desktop Table =====
+ 
 // ===== Render Desktop Table =====
 function renderProducts(productsList) {
-    const tbody = document.getElementById('productsBody');
+    const tbody       = document.getElementById('productsBody');
     const resultCount = document.getElementById('resultCount');
-    tbody.innerHTML = '';
+    tbody.innerHTML   = '';
     resultCount.textContent = `${productsList.length} product(s)`;
-
+ 
     productsList.forEach((product, index) => {
-        const isLow = product.status === 'Low';
+        const isLow      = product.status === 'Low';
         const isExpanded = expandedRows.has(product.id);
-
-        const row = document.createElement('tr');
+ 
+        const row    = document.createElement('tr');
         row.className = isLow ? 'low-stock' : '';
-        row.id = `product-${product.id}`;
-
-        const expandBtn = product.has_variants
+        row.id        = `product-${product.id}`;
+ 
+        const expandBtn    = product.has_variants
             ? `<button class="btn-expand" onclick="toggleVariants(${product.id})" id="expand-btn-${product.id}">
                 <i class="fas fa-${isExpanded ? 'chevron-up' : 'chevron-down'}"></i>
                </button>`
             : `<span style="width:24px;display:inline-block;"></span>`;
-
+ 
         const variantBadge = product.has_variants
             ? `<span class="has-variants-badge"><i class="fas fa-layer-group"></i> ${product.variants.length}</span>`
             : '';
-
+ 
         row.innerHTML = `
             <td style="color:#94a3b8;font-weight:600;font-size:12px;">${index + 1}</td>
             <td>
@@ -798,13 +803,13 @@ function renderProducts(productsList) {
                 <div class="sell-restock-group">
                     <div class="sell-restock-pair">
                         <input class="qty-input" type="number" id="sell-qty-${product.id}" placeholder="Qty" min="1">
-                        <button class="btn btn-sm btn-success" onclick="sellProduct(${product.id})" title="Sell">
+                        <button class="btn btn-sm btn-success" onclick="sellProduct(${product.id})">
                             <i class="fas fa-shopping-cart"></i> Sell
                         </button>
                     </div>
                     <div class="sell-restock-pair">
                         <input class="qty-input" type="number" id="restock-qty-${product.id}" placeholder="Qty" min="1">
-                        <button class="btn btn-sm btn-primary" onclick="restockProduct(${product.id})" title="Restock">
+                        <button class="btn btn-sm btn-primary" onclick="restockProduct(${product.id})">
                             <i class="fas fa-plus"></i> Restock
                         </button>
                     </div>
@@ -831,13 +836,13 @@ function renderProducts(productsList) {
             </td>
         `;
         tbody.appendChild(row);
-
+ 
         if (product.has_variants) {
-            const variantRow = document.createElement('tr');
-            variantRow.className = 'variants-row';
-            variantRow.id = `variants-${product.id}`;
+            const variantRow       = document.createElement('tr');
+            variantRow.className   = 'variants-row';
+            variantRow.id          = `variants-${product.id}`;
             variantRow.style.display = isExpanded ? 'table-row' : 'none';
-            variantRow.innerHTML = `
+            variantRow.innerHTML   = `
                 <td colspan="8">
                     <div class="variants-container">
                         <div class="variants-header">
@@ -855,13 +860,13 @@ function renderProducts(productsList) {
         }
     });
 }
-
-// ===== Render Variants Table (Desktop) =====
+ 
+// ===== Render Variants Table (Desktop) — defined ONCE =====
 function renderVariantsTable(product) {
     if (!product.variants || product.variants.length === 0) {
         return '<p style="color:#94a3b8;font-size:12px;padding:6px 0;">No variants yet.</p>';
     }
-
+ 
     const rows = product.variants.map(v => `
         <tr class="${v.status === 'Low' ? 'low-stock' : ''}">
             <td>
@@ -915,7 +920,7 @@ function renderVariantsTable(product) {
             </td>
         </tr>
     `).join('');
-
+ 
     return `
         <table class="variants-table">
             <thead>
@@ -930,97 +935,19 @@ function renderVariantsTable(product) {
         </table>
     `;
 }
-
-// ===== Render Variants Table (Desktop) =====
-function renderVariantsTable(product) {
-    if (!product.variants || product.variants.length === 0) {
-        return '<p style="color:#94a3b8;font-size:12px;padding:6px 0;">No variants yet.</p>';
-    }
-
-    const rows = product.variants.map(v => `
-        <tr class="${v.status === 'Low' ? 'low-stock' : ''}">
-            <td>
-                <div class="sell-restock-group">
-                    <div class="sell-restock-pair">
-                        <input class="qty-input" type="number" id="sell-variant-${v.id}" placeholder="Qty" min="1">
-                        <button class="btn btn-sm btn-success" onclick="sellVariant(${v.id}, ${product.id})">
-                            <i class="fas fa-shopping-cart"></i> Sell
-                        </button>
-                    </div>
-                    <div class="sell-restock-pair">
-                        <input class="qty-input" type="number" id="restock-variant-${v.id}" placeholder="Qty" min="1">
-                        <button class="btn btn-sm btn-primary" onpointerup="restockVariant(${v.id}, ${product.id})">
-    <i class="fas fa-plus"></i>
-</button>
-                            <i class="fas fa-plus"></i> Restock
-                        </button>
-                    </div>
-                </div>
-            </td>
-            <td><strong>${escapeHtml(v.variant_value)}</strong></td>
-            <td><span style="background:#e0e7ff;color:#4338ca;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;text-transform:capitalize;">${v.variant_type}</span></td>
-            <td style="font-family:monospace;font-size:11px;color:#94a3b8;">${v.barcode || '—'}</td>
-            <td style="font-weight:600;">${formatCurrency(v.effective_selling_price || product.selling_price)}</td>
-            <td>
-                <div class="stock-edit-group">
-                    <span class="stock-value ${v.status === 'Low' ? 'low' : ''}" id="vstock-display-${v.id}">${v.stock}</span>
-                    <input class="stock-edit-input" type="number" id="vstock-edit-${v.id}" value="${v.stock}" min="0" style="display:none;width:50px;font-size:11px;">
-                    <button class="btn btn-sm btn-ghost" id="vstock-edit-btn-${v.id}" onclick="showVariantStockEdit(${v.id})" title="Edit stock" style="padding:3px 5px;">
-                        <i class="fas fa-pen" style="font-size:9px;color:#64748b;"></i>
-                    </button>
-                    <button class="btn btn-sm btn-success" id="vstock-save-btn-${v.id}" onclick="saveVariantStockEdit(${v.id})" title="Save" style="display:none;padding:3px 5px;">
-                        <i class="fas fa-check" style="font-size:9px;"></i>
-                    </button>
-                    <button class="btn btn-sm btn-ghost" id="vstock-cancel-btn-${v.id}" onclick="cancelVariantStockEdit(${v.id})" title="Cancel" style="display:none;padding:3px 5px;">
-                        <i class="fas fa-times" style="font-size:9px;color:#64748b;"></i>
-                    </button>
-                </div>
-            </td>
-            <td>${getStatusBadge(v.status)}</td>
-            <td>
-                <div class="action-group">
-                    <input class="minstock-input" type="number" id="v-minstock-${v.id}" value="${v.min_stock}" min="0">
-                    <button class="btn btn-sm btn-ghost" onclick="updateVariantMinStock(${v.id})" title="Update min stock">
-                        <i class="fas fa-check" style="color:#16a34a;"></i>
-                    </button>
-                </div>
-            </td>
-            <td>
-                <button class="btn btn-sm btn-icon" onclick="deleteVariant(${v.id}, ${product.id})">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        </tr>
-    `).join('');
-
-    return `
-        <table class="variants-table">
-            <thead>
-                <tr>
-                    <th>Sell / Restock</th>
-                    <th>Value</th><th>Type</th><th>Barcode</th>
-                    <th>Price</th><th>Stock</th><th>Status</th>
-                    <th>Min Stock</th><th></th>
-                </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-        </table>
-    `;
-}
-
+ 
 // ===== Render Mobile Cards =====
 function renderMobileProducts(productsList) {
-    const container = document.getElementById('mobileProducts');
+    const container  = document.getElementById('mobileProducts');
     container.innerHTML = '';
-
     if (productsList.length === 0) return;
-
+ 
     productsList.forEach(product => {
         const isLow = product.status === 'Low';
-        const card = document.createElement('div');
+        const card  = document.createElement('div');
         card.className = `product-card ${isLow ? 'low-stock' : ''}`;
-        card.id = `mobile-product-${product.id}`;
-
+        card.id        = `mobile-product-${product.id}`;
+ 
         const variantsHtml = product.has_variants ? `
             <div class="card-variant-section">
                 <div class="card-variant-title">
@@ -1047,7 +974,7 @@ function renderMobileProducts(productsList) {
                         <div class="variant-card-stats">
                             <div>
                                 <label style="font-size:10px;color:#94a3b8;font-weight:600;text-transform:uppercase;">Stock</label>
-                                <span style="font-size:14px;font-weight:700;color:${v.status === 'Low' ? '#dc2626' : '#1e293b'};">${v.stock}</span>
+                                <span id="m-vstock-${v.id}" style="font-size:14px;font-weight:700;color:${v.status === 'Low' ? '#dc2626' : '#1e293b'};">${v.stock}</span>
                             </div>
                             <div>
                                 <label style="font-size:10px;color:#94a3b8;font-weight:600;text-transform:uppercase;">Price</label>
@@ -1094,7 +1021,7 @@ function renderMobileProducts(productsList) {
                 </button>
             </div>
         `;
-
+ 
         card.innerHTML = `
             <div class="product-card-header">
                 <div>
@@ -1111,7 +1038,7 @@ function renderMobileProducts(productsList) {
             <div class="product-card-stats">
                 <div class="product-card-stat">
                     <label>Stock</label>
-                    <span style="color:${isLow ? '#dc2626' : '#1e293b'};">${product.stock}</span>
+                    <span id="m-stock-${product.id}" style="color:${isLow ? '#dc2626' : '#1e293b'};">${product.stock}</span>
                 </div>
                 <div class="product-card-stat">
                     <label>Price</label>
@@ -1127,7 +1054,7 @@ function renderMobileProducts(productsList) {
                     <label>Sell</label>
                     <div class="action-row-inputs">
                         <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-sell-qty-${product.id}" placeholder="Qty" min="1">
-                        <button class="btn btn-sm btn-success" onpointerup="sellProductMobile(${product.id})">
+                        <button class="btn btn-sm btn-success" onclick="sellProductMobile(${product.id})">
                             <i class="fas fa-shopping-cart"></i> Sell
                         </button>
                     </div>
@@ -1136,7 +1063,7 @@ function renderMobileProducts(productsList) {
                     <label>Restock</label>
                     <div class="action-row-inputs">
                         <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-restock-qty-${product.id}" placeholder="Qty" min="1">
-                        <button class="btn btn-sm btn-primary" onpointerup="restockProductMobile(${product.id})">
+                        <button class="btn btn-sm btn-primary" onclick="restockProductMobile(${product.id})">
                             <i class="fas fa-plus"></i> Restock
                         </button>
                     </div>
@@ -1157,12 +1084,12 @@ function renderMobileProducts(productsList) {
         container.appendChild(card);
     });
 }
-
+ 
 // ===== Toggle Variants =====
 function toggleVariants(productId) {
     const variantRow = document.getElementById(`variants-${productId}`);
-    const btn = document.getElementById(`expand-btn-${productId}`);
-    const icon = btn.querySelector('i');
+    const btn        = document.getElementById(`expand-btn-${productId}`);
+    const icon       = btn.querySelector('i');
     if (expandedRows.has(productId)) {
         expandedRows.delete(productId);
         variantRow.style.display = 'none';
@@ -1173,386 +1100,499 @@ function toggleVariants(productId) {
         icon.className = 'fas fa-chevron-up';
     }
 }
-
+ 
 // ===== Summary Cards =====
 function updateSummaryCards(productsList) {
-    const totalProducts = productsList.length;
-    const totalUnits = productsList.reduce((sum, p) => sum + p.stock, 0);
-    const totalValue = productsList.reduce((sum, p) => sum + (p.stock * p.cost_price), 0);
-    const lowStockCount = productsList.filter(p => p.status === 'Low').length;
-    document.getElementById('totalProducts').textContent = formatNumber(totalProducts);
-    document.getElementById('totalUnits').textContent = formatNumber(totalUnits);
-    document.getElementById('totalValue').textContent = formatCurrency(totalValue);
-    document.getElementById('lowStockCount').textContent = lowStockCount;
+    document.getElementById('totalProducts').textContent = formatNumber(productsList.length);
+    document.getElementById('totalUnits').textContent    = formatNumber(productsList.reduce((s, p) => s + p.stock, 0));
+    document.getElementById('totalValue').textContent    = formatCurrency(productsList.reduce((s, p) => s + p.stock * p.cost_price, 0));
+    document.getElementById('lowStockCount').textContent = productsList.filter(p => p.status === 'Low').length;
 }
-
+ 
+// Re-compute summary from cached `products` array (after optimistic updates)
+function refreshSummaryCards() {
+    updateSummaryCards(products);
+}
+ 
+// ===== Optimistic DOM update for product stock =====
+function _applyProductStockDOM(productId, newStock, minStock) {
+    const isLow = newStock <= minStock;
+ 
+    // Desktop: stock display
+    const display = document.getElementById(`stock-display-${productId}`);
+    if (display) { display.textContent = newStock; display.className = `stock-value ${isLow ? 'low' : ''}`; }
+ 
+    // Desktop: row highlight
+    const row = document.getElementById(`product-${productId}`);
+    if (row) row.className = isLow ? 'low-stock' : '';
+ 
+    // Desktop: status badge cell (4th td, index 4)
+    if (row) {
+        const statusTd = row.querySelectorAll('td')[4];
+        if (statusTd) statusTd.innerHTML = getStatusBadge(isLow ? 'Low' : 'OK');
+    }
+ 
+    // Mobile: stock span
+    const mSpan = document.getElementById(`m-stock-${productId}`);
+    if (mSpan) { mSpan.textContent = newStock; mSpan.style.color = isLow ? '#dc2626' : '#1e293b'; }
+ 
+    // Mobile: card border
+    const mCard = document.getElementById(`mobile-product-${productId}`);
+    if (mCard) mCard.classList.toggle('low-stock', isLow);
+}
+ 
+// ===== Optimistic DOM update for variant stock =====
+function _applyVariantStockDOM(variantId, newStock, minStock) {
+    const isLow = newStock <= minStock;
+ 
+    // Desktop
+    const display = document.getElementById(`vstock-display-${variantId}`);
+    if (display) { display.textContent = newStock; display.className = `stock-value ${isLow ? 'low' : ''}`; }
+ 
+    // Mobile
+    const mSpan = document.getElementById(`m-vstock-${variantId}`);
+    if (mSpan) { mSpan.textContent = newStock; mSpan.style.color = isLow ? '#dc2626' : '#1e293b'; }
+}
+ 
 // ===== Add Product =====
 function toggleAddForm() {
-    const form = document.getElementById('addProductForm');
+    const form   = document.getElementById('addProductForm');
     const hidden = form.style.display === 'none';
     form.style.display = hidden ? 'block' : 'none';
     if (hidden) form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
-
+ 
 async function handleAddProduct(event) {
     event.preventDefault();
-    const form = document.getElementById('productForm');
+    const form     = document.getElementById('productForm');
     const formData = new FormData(form);
-    const productData = {
-        name: formData.get('name'),
-        category: formData.get('category') || '',
-        barcode: formData.get('barcode') || '',
-        stock: parseInt(formData.get('stock')) || 0,
-        min_stock: parseInt(formData.get('min_stock')) || 10,
-        cost_price: parseFloat(formData.get('cost_price')),
-        selling_price: parseFloat(formData.get('selling_price'))
+    const data     = {
+        name:          formData.get('name'),
+        category:      formData.get('category') || '',
+        barcode:       formData.get('barcode')   || '',
+        stock:         parseInt(formData.get('stock'))    || 0,
+        min_stock:     parseInt(formData.get('min_stock')) || 10,
+        cost_price:    parseFloat(formData.get('cost_price')),
+        selling_price: parseFloat(formData.get('selling_price')),
     };
     try {
-        await API.createProduct(productData);
+        await API.createProduct(data);
         showToast('Product added!');
         form.reset();
         toggleAddForm();
-        loadProducts();
+        loadProducts();           // full reload needed for new product
         loadCategoriesForDatalist();
-    } catch (error) {
-        showToast('Failed to add product: ' + error.message, 'error');
+    } catch (err) {
+        showToast('Failed to add product: ' + err.message, 'error');
     }
 }
-
+ 
 async function loadCategoriesForDatalist() {
     try {
-        const categories = await API.getCategories();
+        const cats    = await API.getCategories();
         const datalist = document.getElementById('categoryList');
         datalist.innerHTML = '';
-        categories.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat;
-            datalist.appendChild(option);
+        cats.forEach(cat => {
+            const opt  = document.createElement('option');
+            opt.value  = cat;
+            datalist.appendChild(opt);
         });
-    } catch (error) {
-        console.error('Failed to load categories:', error);
-    }
+    } catch (err) { console.error('Failed to load categories:', err); }
 }
-
+ 
 // ===== Variant Modal =====
 function openAddVariantModal(productId, productName) {
     currentVariantProductId = productId;
     document.getElementById('variantProductName').textContent = productName;
-    document.getElementById('variantType').value = 'weight';
-    document.getElementById('variantValue').value = '';
-    document.getElementById('variantStock').value = '0';
-    document.getElementById('variantMinStock').value = '5';
-    document.getElementById('variantCostPrice').value = '';
+    document.getElementById('variantType').value        = 'weight';
+    document.getElementById('variantValue').value       = '';
+    document.getElementById('variantStock').value       = '0';
+    document.getElementById('variantMinStock').value    = '5';
+    document.getElementById('variantCostPrice').value   = '';
     document.getElementById('variantSellingPrice').value = '';
-    document.getElementById('variantBarcode').value = '';
+    document.getElementById('variantBarcode').value     = '';
     document.getElementById('addVariantModal').classList.add('show');
-    setTimeout(() => { document.getElementById('variantValue').focus(); }, 300);
+    setTimeout(() => document.getElementById('variantValue').focus(), 300);
 }
-
+ 
 function closeVariantModal() {
     document.getElementById('addVariantModal').classList.remove('show');
     currentVariantProductId = null;
 }
-
+ 
 async function submitAddVariant() {
     if (!currentVariantProductId) return;
     const variantValue = document.getElementById('variantValue').value.trim();
     if (!variantValue) { showToast('Please enter a variant value', 'error'); return; }
-    const costPrice = document.getElementById('variantCostPrice').value;
+    const costPrice    = document.getElementById('variantCostPrice').value;
     const sellingPrice = document.getElementById('variantSellingPrice').value;
-    const variantData = {
-        product: currentVariantProductId,
-        variant_type: document.getElementById('variantType').value,
+    const pid          = currentVariantProductId;
+    const variantData  = {
+        product:       pid,
+        variant_type:  document.getElementById('variantType').value,
         variant_value: variantValue,
-        stock: parseInt(document.getElementById('variantStock').value) || 0,
-        min_stock: parseInt(document.getElementById('variantMinStock').value) || 5,
-        cost_price: costPrice ? parseFloat(costPrice) : null,
+        stock:         parseInt(document.getElementById('variantStock').value)    || 0,
+        min_stock:     parseInt(document.getElementById('variantMinStock').value) || 5,
+        cost_price:    costPrice    ? parseFloat(costPrice)    : null,
         selling_price: sellingPrice ? parseFloat(sellingPrice) : null,
-        barcode: document.getElementById('variantBarcode').value.trim() || '',
+        barcode:       document.getElementById('variantBarcode').value.trim() || '',
     };
     try {
-        const pid = currentVariantProductId;
         await API.createVariant(variantData);
         showToast('Variant added!');
         closeVariantModal();
         expandedRows.add(pid);
-        loadProducts();
-    } catch (error) {
-        showToast('Failed to add variant: ' + error.message, 'error');
+        loadProducts();   // full reload needed — new variant changes structure
+    } catch (err) {
+        showToast('Failed to add variant: ' + err.message, 'error');
     }
 }
-
-// ===== Product Actions (Desktop) =====
-async function updateMinStock(productId) {
-    const input = document.getElementById(`minstock-${productId}`);
-    const val = parseInt(input.value);
-    if (isNaN(val) || val < 0) { showToast('Invalid value', 'error'); return; }
-    try {
-        await API.updateProductMinStock(productId, val);
-        showToast('Min stock updated!');
-        loadProducts();
-    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
-}
-
-// ===== Inline Stock Editing =====
-window.__stockEditCache = window.__stockEditCache || {};
-
+ 
+// ===== Inline Stock Editing (Desktop – Products) =====
+var __stockEditCache = {};
+ 
 function showStockEdit(productId) {
-    const display = document.getElementById(`stock-display-${productId}`);
-    const input = document.getElementById(`stock-edit-${productId}`);
-    const editBtn = document.getElementById(`stock-edit-btn-${productId}`);
-    const saveBtn = document.getElementById(`stock-save-btn-${productId}`);
-    const cancelBtn = document.getElementById(`stock-cancel-btn-${productId}`);
+    const display    = document.getElementById(`stock-display-${productId}`);
+    const input      = document.getElementById(`stock-edit-${productId}`);
+    const editBtn    = document.getElementById(`stock-edit-btn-${productId}`);
+    const saveBtn    = document.getElementById(`stock-save-btn-${productId}`);
+    const cancelBtn  = document.getElementById(`stock-cancel-btn-${productId}`);
     __stockEditCache[productId] = display.textContent;
-    display.style.display = 'none';
-    input.style.display = 'inline-block';
-    input.value = display.textContent;
+    display.style.display  = 'none';
+    input.style.display    = 'inline-block';
+    input.value            = display.textContent;
     input.focus(); input.select();
-    editBtn.style.display = 'none';
-    saveBtn.style.display = 'inline-flex';
+    editBtn.style.display  = 'none';
+    saveBtn.style.display  = 'inline-flex';
     cancelBtn.style.display = 'inline-flex';
 }
-
+ 
 function cancelStockEdit(productId) {
-    const display = document.getElementById(`stock-display-${productId}`);
-    const input = document.getElementById(`stock-edit-${productId}`);
-    const editBtn = document.getElementById(`stock-edit-btn-${productId}`);
-    const saveBtn = document.getElementById(`stock-save-btn-${productId}`);
-    const cancelBtn = document.getElementById(`stock-cancel-btn-${productId}`);
-    display.textContent = __stockEditCache[productId] || display.textContent;
-    display.style.display = 'inline';
-    input.style.display = 'none';
-    editBtn.style.display = 'inline-flex';
-    saveBtn.style.display = 'none';
+    const display    = document.getElementById(`stock-display-${productId}`);
+    const input      = document.getElementById(`stock-edit-${productId}`);
+    const editBtn    = document.getElementById(`stock-edit-btn-${productId}`);
+    const saveBtn    = document.getElementById(`stock-save-btn-${productId}`);
+    const cancelBtn  = document.getElementById(`stock-cancel-btn-${productId}`);
+    display.textContent    = __stockEditCache[productId] || display.textContent;
+    display.style.display  = 'inline';
+    input.style.display    = 'none';
+    editBtn.style.display  = 'inline-flex';
+    saveBtn.style.display  = 'none';
     cancelBtn.style.display = 'none';
 }
-
+ 
 async function saveStockEdit(productId) {
-    const input = document.getElementById(`stock-edit-${productId}`);
+    const input    = document.getElementById(`stock-edit-${productId}`);
     const newStock = parseInt(input.value);
     if (isNaN(newStock) || newStock < 0) { showToast('Invalid stock value', 'error'); return; }
+    const product  = products.find(p => p.id === productId);
     try {
         await API.updateProductStock(productId, newStock);
+        if (product) { product.stock = newStock; }
+        _applyProductStockDOM(productId, newStock, product ? product.min_stock : 0);
+        refreshSummaryCards();
+        cancelStockEdit(productId);
         showToast('Stock updated!');
-        loadProducts();
-    } catch (error) { showToast('Failed to update stock: ' + error.message, 'error'); }
+    } catch (err) { showToast('Failed to update stock: ' + err.message, 'error'); }
 }
-
+ 
+// ===== Product Actions – Desktop (OPTIMISTIC — no full reload) =====
 async function sellProduct(productId) {
-    const input = document.getElementById(`sell-qty-${productId}`);
+    if (_locked()) return;
+    const input    = document.getElementById(`sell-qty-${productId}`);
     const quantity = parseInt(input.value);
     if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
+    const product  = products.find(p => p.id === productId);
+    if (product && product.stock < quantity) { showToast(`Insufficient stock. Available: ${product.stock}`, 'error'); return; }
+    _lock();
     try {
         await API.sellProduct(productId, quantity);
+        if (product) { product.stock -= quantity; }
+        _applyProductStockDOM(productId, product ? product.stock : 0, product ? product.min_stock : 0);
+        refreshSummaryCards();
         showToast('Sale recorded!');
         input.value = '';
-        loadProducts();
-    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+    } catch (err) { showToast('Failed: ' + err.message, 'error'); }
+    finally { _unlock(); }
 }
-
+ 
 async function restockProduct(productId) {
-    const input = document.getElementById(`restock-qty-${productId}`);
+    if (_locked()) return;
+    const input    = document.getElementById(`restock-qty-${productId}`);
     const quantity = parseInt(input.value);
     if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
+    const product  = products.find(p => p.id === productId);
+    _lock();
     try {
         await API.restockProduct(productId, quantity);
+        if (product) { product.stock += quantity; }
+        _applyProductStockDOM(productId, product ? product.stock : 0, product ? product.min_stock : 0);
+        refreshSummaryCards();
         showToast('Restocked!');
         input.value = '';
-        loadProducts();
-    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+    } catch (err) { showToast('Failed: ' + err.message, 'error'); }
+    finally { _unlock(); }
 }
-
+ 
+async function updateMinStock(productId) {
+    const input = document.getElementById(`minstock-${productId}`);
+    const val   = parseInt(input.value);
+    if (isNaN(val) || val < 0) { showToast('Invalid value', 'error'); return; }
+    const product = products.find(p => p.id === productId);
+    try {
+        await API.updateProductMinStock(productId, val);
+        if (product) { product.min_stock = val; }
+        // Re-evaluate low status with new threshold
+        if (product) _applyProductStockDOM(productId, product.stock, val);
+        refreshSummaryCards();
+        showToast('Min stock updated!');
+    } catch (err) { showToast('Failed: ' + err.message, 'error'); }
+}
+ 
 async function deleteProduct(productId) {
     if (!confirm('Delete this product and all its variants?')) return;
     try {
         await API.deleteProduct(productId);
         showToast('Product deleted!');
-        loadProducts();
-    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+        loadProducts();   // full reload — product count changes
+    } catch (err) { showToast('Failed: ' + err.message, 'error'); }
 }
-
-// ===== Product Actions (Mobile) =====
+ 
+// ===== Product Actions – Mobile (OPTIMISTIC) =====
 async function sellProductMobile(productId) {
-    const input = document.getElementById(`m-sell-qty-${productId}`);
+    if (_locked()) return;
+    const input    = document.getElementById(`m-sell-qty-${productId}`);
     if (!input) { showToast('Input not found', 'error'); return; }
     const quantity = parseInt(input.value, 10);
     if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
+    const product  = products.find(p => p.id === productId);
+    if (product && product.stock < quantity) { showToast(`Insufficient stock. Available: ${product.stock}`, 'error'); return; }
+    _lock();
     try {
         await API.sellProduct(productId, quantity);
+        if (product) { product.stock -= quantity; }
+        _applyProductStockDOM(productId, product ? product.stock : 0, product ? product.min_stock : 0);
+        refreshSummaryCards();
         showToast('Sale recorded!');
         input.value = '';
-        loadProducts();
-    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+    } catch (err) { showToast('Failed: ' + err.message, 'error'); }
+    finally { _unlock(); }
 }
-
+ 
 async function restockProductMobile(productId) {
-    const input = document.getElementById(`m-restock-qty-${productId}`);
+    if (_locked()) return;
+    const input    = document.getElementById(`m-restock-qty-${productId}`);
     if (!input) { showToast('Input not found', 'error'); return; }
     const quantity = parseInt(input.value, 10);
     if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
+    const product  = products.find(p => p.id === productId);
+    _lock();
     try {
         await API.restockProduct(productId, quantity);
+        if (product) { product.stock += quantity; }
+        _applyProductStockDOM(productId, product ? product.stock : 0, product ? product.min_stock : 0);
+        refreshSummaryCards();
         showToast('Restocked!');
         input.value = '';
-        loadProducts();
-    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+    } catch (err) { showToast('Failed: ' + err.message, 'error'); }
+    finally { _unlock(); }
 }
-
+ 
 async function updateMinStockMobile(productId) {
-    const input = document.getElementById(`m-minstock-${productId}`);
-    const val = parseInt(input.value);
+    const input   = document.getElementById(`m-minstock-${productId}`);
+    const val     = parseInt(input.value);
     if (isNaN(val) || val < 0) { showToast('Invalid value', 'error'); return; }
+    const product = products.find(p => p.id === productId);
     try {
         await API.updateProductMinStock(productId, val);
+        if (product) { product.min_stock = val; }
+        if (product) _applyProductStockDOM(productId, product.stock, val);
+        refreshSummaryCards();
         showToast('Min stock updated!');
-        loadProducts();
-    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+    } catch (err) { showToast('Failed: ' + err.message, 'error'); }
 }
-
-// ===== Variant Actions =====
-async function updateVariantMinStock(variantId) {
-    const input = document.getElementById(`v-minstock-${variantId}`);
-    const val = parseInt(input.value);
-    if (isNaN(val) || val < 0) { showToast('Invalid value', 'error'); return; }
-    try {
-        await API.updateVariant(variantId, { min_stock: val });
-        showToast('Variant min stock updated!');
-        loadProducts();
-    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
-}
-
-async function updateVariantMinStockMobile(variantId) {
-    const input = document.getElementById(`m-v-minstock-${variantId}`);
-    const val = parseInt(input.value);
-    if (isNaN(val) || val < 0) { showToast('Invalid value', 'error'); return; }
-    try {
-        await API.updateVariant(variantId, { min_stock: val });
-        showToast('Variant min stock updated!');
-        loadProducts();
-    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
-}
-
-// ===== Inline Variant Stock Editing =====
-window.__variantEditCache = window.__variantEditCache || {};
-
+ 
+// ===== Inline Stock Editing (Variants – Desktop) =====
+var __variantEditCache = {};
+ 
 function showVariantStockEdit(variantId) {
-    const display = document.getElementById(`vstock-display-${variantId}`);
-    const input = document.getElementById(`vstock-edit-${variantId}`);
-    const editBtn = document.getElementById(`vstock-edit-btn-${variantId}`);
-    const saveBtn = document.getElementById(`vstock-save-btn-${variantId}`);
+    const display   = document.getElementById(`vstock-display-${variantId}`);
+    const input     = document.getElementById(`vstock-edit-${variantId}`);
+    const editBtn   = document.getElementById(`vstock-edit-btn-${variantId}`);
+    const saveBtn   = document.getElementById(`vstock-save-btn-${variantId}`);
     const cancelBtn = document.getElementById(`vstock-cancel-btn-${variantId}`);
     __variantEditCache[variantId] = display.textContent;
-    display.style.display = 'none';
-    input.style.display = 'inline-block';
-    input.value = display.textContent;
+    display.style.display   = 'none';
+    input.style.display     = 'inline-block';
+    input.value             = display.textContent;
     input.focus(); input.select();
-    editBtn.style.display = 'none';
-    saveBtn.style.display = 'inline-flex';
+    editBtn.style.display   = 'none';
+    saveBtn.style.display   = 'inline-flex';
     cancelBtn.style.display = 'inline-flex';
 }
-
+ 
 function cancelVariantStockEdit(variantId) {
-    const display = document.getElementById(`vstock-display-${variantId}`);
-    const input = document.getElementById(`vstock-edit-${variantId}`);
-    const editBtn = document.getElementById(`vstock-edit-btn-${variantId}`);
-    const saveBtn = document.getElementById(`vstock-save-btn-${variantId}`);
+    const display   = document.getElementById(`vstock-display-${variantId}`);
+    const input     = document.getElementById(`vstock-edit-${variantId}`);
+    const editBtn   = document.getElementById(`vstock-edit-btn-${variantId}`);
+    const saveBtn   = document.getElementById(`vstock-save-btn-${variantId}`);
     const cancelBtn = document.getElementById(`vstock-cancel-btn-${variantId}`);
-    display.textContent = __variantEditCache[variantId] || display.textContent;
-    display.style.display = 'inline';
-    input.style.display = 'none';
-    editBtn.style.display = 'inline-flex';
-    saveBtn.style.display = 'none';
+    display.textContent     = __variantEditCache[variantId] || display.textContent;
+    display.style.display   = 'inline';
+    input.style.display     = 'none';
+    editBtn.style.display   = 'inline-flex';
+    saveBtn.style.display   = 'none';
     cancelBtn.style.display = 'none';
 }
-
+ 
 async function saveVariantStockEdit(variantId) {
-    const input = document.getElementById(`vstock-edit-${variantId}`);
+    const input    = document.getElementById(`vstock-edit-${variantId}`);
     const newStock = parseInt(input.value);
     if (isNaN(newStock) || newStock < 0) { showToast('Invalid stock value', 'error'); return; }
+    // find the variant in the products cache
+    let foundVariant = null;
+    for (const p of products) {
+        const v = (p.variants || []).find(v => v.id === variantId);
+        if (v) { foundVariant = v; break; }
+    }
     try {
         await API.updateVariantStock(variantId, newStock);
+        if (foundVariant) { foundVariant.stock = newStock; }
+        _applyVariantStockDOM(variantId, newStock, foundVariant ? foundVariant.min_stock : 0);
+        cancelVariantStockEdit(variantId);
         showToast('Variant stock updated!');
-        loadProducts();
-    } catch (error) { showToast('Failed to update variant stock: ' + error.message, 'error'); }
+    } catch (err) { showToast('Failed to update variant stock: ' + err.message, 'error'); }
 }
-
+ 
+// ===== Variant Actions (OPTIMISTIC for sell/restock) =====
 async function sellVariant(variantId, productId) {
-    // Try mobile input first (has value on mobile), fall back to desktop
-    const mobileInput = document.getElementById(`m-sell-variant-${variantId}`);
+    if (_locked()) return;
+    const mobileInput  = document.getElementById(`m-sell-variant-${variantId}`);
     const desktopInput = document.getElementById(`sell-variant-${variantId}`);
-    const input = (mobileInput && mobileInput.value) ? mobileInput : desktopInput;
-    
-    const quantity = parseInt(input ? input.value : 0, 10);
+    const input        = (mobileInput && mobileInput.value) ? mobileInput : desktopInput;
+    const quantity     = parseInt(input ? input.value : 0, 10);
     if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
+ 
+    let foundVariant = null;
+    for (const p of products) {
+        const v = (p.variants || []).find(v => v.id === variantId);
+        if (v) { foundVariant = v; break; }
+    }
+    if (foundVariant && foundVariant.stock < quantity) {
+        showToast(`Insufficient stock. Available: ${foundVariant.stock}`, 'error'); return;
+    }
+    _lock();
     try {
         await API.sellVariant(variantId, quantity);
+        if (foundVariant) { foundVariant.stock -= quantity; }
+        _applyVariantStockDOM(variantId, foundVariant ? foundVariant.stock : 0, foundVariant ? foundVariant.min_stock : 0);
         showToast('Variant sale recorded!');
         if (input) input.value = '';
         expandedRows.add(productId);
-        loadProducts();
-    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+    } catch (err) { showToast('Failed: ' + err.message, 'error'); }
+    finally { _unlock(); }
 }
-
+ 
 async function restockVariant(variantId, productId) {
-    // Try mobile input first (has value on mobile), fall back to desktop
-    const mobileInput = document.getElementById(`m-restock-variant-${variantId}`);
+    if (_locked()) return;
+    const mobileInput  = document.getElementById(`m-restock-variant-${variantId}`);
     const desktopInput = document.getElementById(`restock-variant-${variantId}`);
-    const input = (mobileInput && mobileInput.value) ? mobileInput : desktopInput;
-
-    const quantity = parseInt(input ? input.value : 0, 10);
+    const input        = (mobileInput && mobileInput.value) ? mobileInput : desktopInput;
+    const quantity     = parseInt(input ? input.value : 0, 10);
     if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
+ 
+    let foundVariant = null;
+    for (const p of products) {
+        const v = (p.variants || []).find(v => v.id === variantId);
+        if (v) { foundVariant = v; break; }
+    }
+    _lock();
     try {
         await API.restockVariant(variantId, quantity);
+        if (foundVariant) { foundVariant.stock += quantity; }
+        _applyVariantStockDOM(variantId, foundVariant ? foundVariant.stock : 0, foundVariant ? foundVariant.min_stock : 0);
         showToast('Variant restocked!');
         if (input) input.value = '';
         expandedRows.add(productId);
-        loadProducts();
-    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+    } catch (err) { showToast('Failed: ' + err.message, 'error'); }
+    finally { _unlock(); }
 }
+ 
+async function updateVariantMinStock(variantId) {
+    const input = document.getElementById(`v-minstock-${variantId}`);
+    const val   = parseInt(input.value);
+    if (isNaN(val) || val < 0) { showToast('Invalid value', 'error'); return; }
+    let foundVariant = null;
+    for (const p of products) {
+        const v = (p.variants || []).find(v => v.id === variantId);
+        if (v) { foundVariant = v; break; }
+    }
+    try {
+        await API.updateVariant(variantId, { min_stock: val });
+        if (foundVariant) { foundVariant.min_stock = val; }
+        if (foundVariant) _applyVariantStockDOM(variantId, foundVariant.stock, val);
+        showToast('Variant min stock updated!');
+    } catch (err) { showToast('Failed: ' + err.message, 'error'); }
+}
+ 
+async function updateVariantMinStockMobile(variantId) {
+    const input = document.getElementById(`m-v-minstock-${variantId}`);
+    const val   = parseInt(input.value);
+    if (isNaN(val) || val < 0) { showToast('Invalid value', 'error'); return; }
+    let foundVariant = null;
+    for (const p of products) {
+        const v = (p.variants || []).find(v => v.id === variantId);
+        if (v) { foundVariant = v; break; }
+    }
+    try {
+        await API.updateVariant(variantId, { min_stock: val });
+        if (foundVariant) { foundVariant.min_stock = val; }
+        if (foundVariant) _applyVariantStockDOM(variantId, foundVariant.stock, val);
+        showToast('Variant min stock updated!');
+    } catch (err) { showToast('Failed: ' + err.message, 'error'); }
+}
+ 
 async function deleteVariant(variantId, productId) {
     if (!confirm('Delete this variant?')) return;
     try {
         await API.deleteVariant(variantId);
         showToast('Variant deleted!');
         expandedRows.add(productId);
-        loadProducts();
-    } catch (error) { showToast('Failed: ' + error.message, 'error'); }
+        loadProducts();   // full reload — variant count changes
+    } catch (err) { showToast('Failed: ' + err.message, 'error'); }
 }
-
+ 
 // ===== Excel Export =====
 async function downloadExcel() {
     try {
         showToast('Preparing Excel...', 'info');
         if (!products || products.length === 0) { showToast('No products to export', 'error'); return; }
-
         const wb = XLSX.utils.book_new();
-
+ 
         const productRows = [['S.N','Product Name','Category','Barcode','Stock','Min Stock','Cost Price','Selling Price','Status','Variants Count']];
         products.forEach((p, i) => {
             productRows.push([i+1, p.name, p.category||'', p.barcode||'', p.stock, p.min_stock,
-                parseFloat(p.cost_price), parseFloat(p.selling_price), p.status, p.variants?p.variants.length:0]);
+                parseFloat(p.cost_price), parseFloat(p.selling_price), p.status, p.variants ? p.variants.length : 0]);
         });
         const ws1 = XLSX.utils.aoa_to_sheet(productRows);
         ws1['!cols'] = [{wch:5},{wch:28},{wch:15},{wch:14},{wch:8},{wch:10},{wch:12},{wch:13},{wch:8},{wch:14}];
         XLSX.utils.book_append_sheet(wb, ws1, 'Products');
-
+ 
         const variantRows = [['S.N','Product Name','Variant Value','Variant Type','Barcode','Stock','Min Stock','Cost Price','Selling Price','Status']];
         let sn = 1;
         products.forEach(p => {
-            if (p.variants && p.variants.length > 0) {
-                p.variants.forEach(v => {
-                    variantRows.push([sn++, p.name, v.variant_value, v.variant_type, v.barcode||'', v.stock, v.min_stock,
-                        v.cost_price?parseFloat(v.cost_price):parseFloat(p.cost_price),
-                        v.selling_price?parseFloat(v.selling_price):parseFloat(p.selling_price), v.status]);
-                });
-            }
+            (p.variants || []).forEach(v => {
+                variantRows.push([sn++, p.name, v.variant_value, v.variant_type, v.barcode||'', v.stock, v.min_stock,
+                    v.cost_price ? parseFloat(v.cost_price) : parseFloat(p.cost_price),
+                    v.selling_price ? parseFloat(v.selling_price) : parseFloat(p.selling_price), v.status]);
+            });
         });
         if (variantRows.length > 1) {
             const ws2 = XLSX.utils.aoa_to_sheet(variantRows);
             ws2['!cols'] = [{wch:5},{wch:28},{wch:14},{wch:12},{wch:14},{wch:8},{wch:10},{wch:12},{wch:13},{wch:8}];
             XLSX.utils.book_append_sheet(wb, ws2, 'Variants');
         }
-
+ 
         const combinedRows = [['S.N','Product Name','Variant','Type','Category','Barcode','Stock','Min Stock','Selling Price','Status']];
         let csn = 1;
         products.forEach(p => {
@@ -1560,7 +1600,7 @@ async function downloadExcel() {
                 p.variants.forEach(v => {
                     combinedRows.push([csn++, p.name, v.variant_value, v.variant_type, p.category||'',
                         v.barcode||p.barcode||'', v.stock, v.min_stock,
-                        v.selling_price?parseFloat(v.selling_price):parseFloat(p.selling_price), v.status]);
+                        v.selling_price ? parseFloat(v.selling_price) : parseFloat(p.selling_price), v.status]);
                 });
             } else {
                 combinedRows.push([csn++, p.name,'—','—', p.category||'', p.barcode||'',
@@ -1570,53 +1610,53 @@ async function downloadExcel() {
         const ws3 = XLSX.utils.aoa_to_sheet(combinedRows);
         ws3['!cols'] = [{wch:5},{wch:28},{wch:14},{wch:10},{wch:14},{wch:14},{wch:8},{wch:10},{wch:13},{wch:8}];
         XLSX.utils.book_append_sheet(wb, ws3, 'Combined');
-
+ 
         const date = new Date().toISOString().slice(0,10).replace(/-/g,'');
         XLSX.writeFile(wb, `Stock_Report_${date}.xlsx`);
         showToast('Excel downloaded!', 'success');
-    } catch (error) {
-        showToast('Export failed: ' + error.message, 'error');
+    } catch (err) {
+        showToast('Export failed: ' + err.message, 'error');
     }
 }
-
+ 
 // ===== Search =====
 function handleSearch(search, category) { loadProducts(); }
-
+ 
 function mobileSearch() {
     const s = document.getElementById('mobileSearchInput');
     const c = document.getElementById('mobileCategoryFilter');
     if (s && typeof performSearch === 'function') performSearch(s.value, c.value);
 }
-
+ 
 // ===== Utility =====
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
-
+ 
 // ===== Google Sheets =====
 function openGoogleSheetsModal() {
     const saved = localStorage.getItem('googleSheetsConfig');
     if (saved) googleSheetsConfig = JSON.parse(saved);
     document.getElementById('sheetId').value = googleSheetsConfig.sheetId || '';
-    document.getElementById('apiKey').value = googleSheetsConfig.apiKey || '';
+    document.getElementById('apiKey').value  = googleSheetsConfig.apiKey  || '';
     document.getElementById('googleSheetsModal').classList.add('show');
 }
-
+ 
 function closeGoogleSheetsModal() {
     document.getElementById('googleSheetsModal').classList.remove('show');
 }
-
+ 
 function saveGoogleSheetsConfig() {
     const sheetId = document.getElementById('sheetId').value.trim();
-    const apiKey = document.getElementById('apiKey').value.trim();
+    const apiKey  = document.getElementById('apiKey').value.trim();
     if (!sheetId || !apiKey) { showToast('Enter both Sheet ID and API Key', 'error'); return false; }
     googleSheetsConfig = { sheetId, apiKey };
     localStorage.setItem('googleSheetsConfig', JSON.stringify(googleSheetsConfig));
     return true;
 }
-
+ 
 async function exportToGoogleSheets() {
     if (!saveGoogleSheetsConfig()) return;
     try {
@@ -1624,12 +1664,12 @@ async function exportToGoogleSheets() {
         const result = await API.syncToGoogleSheets(googleSheetsConfig.sheetId, googleSheetsConfig.apiKey);
         showToast(result.message || 'Synced!', 'success');
         closeGoogleSheetsModal();
-    } catch (error) {
-        const e = error.message || String(error);
+    } catch (err) {
+        const e = err.message || String(err);
         showToast(e.includes('403') ? 'Permission denied! Enable sharing.' : 'Export failed: ' + e, 'error');
     }
 }
-
+ 
 async function importFromGoogleSheets() {
     if (!saveGoogleSheetsConfig()) return;
     try {
@@ -1638,43 +1678,54 @@ async function importFromGoogleSheets() {
         showToast(result.message || 'Imported!', 'success');
         closeGoogleSheetsModal();
         loadProducts();
-    } catch (error) {
-        const e = error.message || String(error);
+    } catch (err) {
+        const e = err.message || String(err);
         showToast(e.includes('403') ? 'Permission denied! Enable sharing.' : 'Import failed: ' + e, 'error');
     }
 }
-
+ 
 // Close modals on backdrop click
 window.addEventListener('click', function(e) {
-    if (e.target === document.getElementById('addVariantModal')) closeVariantModal();
+    if (e.target === document.getElementById('addVariantModal'))    closeVariantModal();
     if (e.target === document.getElementById('googleSheetsModal')) closeGoogleSheetsModal();
 });
-
-// ===== Globals =====
-window.handleSearch = handleSearch;
-window.downloadExcel = downloadExcel;
-window.openGoogleSheetsModal = openGoogleSheetsModal;
-window.closeGoogleSheetsModal = closeGoogleSheetsModal;
-window.exportToGoogleSheets = exportToGoogleSheets;
-window.importFromGoogleSheets = importFromGoogleSheets;
-window.toggleVariants = toggleVariants;
-window.openAddVariantModal = openAddVariantModal;
-window.closeVariantModal = closeVariantModal;
-window.submitAddVariant = submitAddVariant;
-window.sellVariant = sellVariant;
-window.restockVariant = restockVariant;
-window.deleteVariant = deleteVariant;
-window.updateVariantMinStock = updateVariantMinStock;
+ 
+// ===== Global Exports =====
+window.handleSearch              = handleSearch;
+window.downloadExcel             = downloadExcel;
+window.openGoogleSheetsModal     = openGoogleSheetsModal;
+window.closeGoogleSheetsModal    = closeGoogleSheetsModal;
+window.exportToGoogleSheets      = exportToGoogleSheets;
+window.importFromGoogleSheets    = importFromGoogleSheets;
+window.toggleVariants            = toggleVariants;
+window.openAddVariantModal       = openAddVariantModal;
+window.closeVariantModal         = closeVariantModal;
+window.submitAddVariant          = submitAddVariant;
+window.sellVariant               = sellVariant;
+window.restockVariant            = restockVariant;
+window.deleteVariant             = deleteVariant;
+window.updateVariantMinStock     = updateVariantMinStock;
 window.updateVariantMinStockMobile = updateVariantMinStockMobile;
-window.showStockEdit = showStockEdit;
-window.saveStockEdit = saveStockEdit;
-window.cancelStockEdit = cancelStockEdit;
-window.showVariantStockEdit = showVariantStockEdit;
-window.saveVariantStockEdit = saveVariantStockEdit;
-window.cancelVariantStockEdit = cancelVariantStockEdit;
-window.sellProductMobile = sellProductMobile;
-window.restockProductMobile = restockProductMobile;
-window.updateMinStockMobile = updateMinStockMobile;
+window.showStockEdit             = showStockEdit;
+window.saveStockEdit             = saveStockEdit;
+window.cancelStockEdit           = cancelStockEdit;
+window.showVariantStockEdit      = showVariantStockEdit;
+window.saveVariantStockEdit      = saveVariantStockEdit;
+window.cancelVariantStockEdit    = cancelVariantStockEdit;
+window.sellProduct               = sellProduct;
+window.restockProduct            = restockProduct;
+window.updateMinStock            = updateMinStock;
+window.deleteProduct             = deleteProduct;
+window.sellProductMobile         = sellProductMobile;
+window.restockProductMobile      = restockProductMobile;
+window.updateMinStockMobile      = updateMinStockMobile;
+window.toggleAddForm             = toggleAddForm;
+window.handleAddProduct          = handleAddProduct;
+window.mobileSearch              = mobileSearch;
+window.openGoogleSheetsModal     = openGoogleSheetsModal;
+window.closeGoogleSheetsModal    = closeGoogleSheetsModal;
+ 
+
 </script>
 {% endblock %}
 {% endblock %}
