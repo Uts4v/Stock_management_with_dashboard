@@ -6,693 +6,1257 @@
 {% block extra_head %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-/* ===== RESET & BASE ===== */
-*, *::before, *::after { box-sizing: border-box; }
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  --bg:         #F7F8FA;
+  --surface:    #FFFFFF;
+  --border:     #E8ECF0;
+  --border-2:   #D1D9E0;
+  --text-1:     #111827;
+  --text-2:     #4B5563;
+  --text-3:     #9CA3AF;
+  --text-inv:   #FFFFFF;
 
-/* ===== SUMMARY CARDS ===== */
-.summary-cards {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-    margin-bottom: 20px;
-}
-.summary-card {
-    background: white;
-    border-radius: 12px;
-    padding: 18px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
-    border: 1px solid #f1f5f9;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-.summary-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-.summary-card .icon {
-    width: 48px; height: 48px; border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px; flex-shrink: 0;
-}
-.summary-card .icon.blue   { background:#eff6ff; color:#2563eb; }
-.summary-card .icon.green  { background:#f0fdf4; color:#16a34a; }
-.summary-card .icon.orange { background:#fff7ed; color:#ea580c; }
-.summary-card .icon.red    { background:#fef2f2; color:#dc2626; }
-.summary-card .info h3 { font-size:20px; font-weight:700; color:#1e293b; margin:0 0 2px; }
-.summary-card .info p  { font-size:11px; color:#64748b; margin:0; font-weight:500; text-transform:uppercase; letter-spacing:0.04em; }
+  /* Brand */
+  --blue:       #2563EB;
+  --blue-lt:    #EFF6FF;
+  --blue-mid:   #BFDBFE;
+  --blue-dk:    #1D4ED8;
 
-/* ===== PAGE HEADER ===== */
+  --green:      #16A34A;
+  --green-lt:   #F0FDF4;
+  --green-mid:  #BBF7D0;
+  --green-dk:   #15803D;
+
+  --amber:      #D97706;
+  --amber-lt:   #FFFBEB;
+  --amber-mid:  #FDE68A;
+
+  --red:        #DC2626;
+  --red-lt:     #FEF2F2;
+  --red-mid:    #FECACA;
+  --red-dk:     #B91C1C;
+
+  --violet:     #6366F1;
+  --violet-lt:  #EEF2FF;
+  --violet-mid: #C7D2FE;
+
+  /* Shape */
+  --r-sm:  6px;
+  --r-md:  10px;
+  --r-lg:  14px;
+  --r-xl:  18px;
+
+  /* Shadow */
+  --sh-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --sh-md: 0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+  --sh-up: 0 -6px 32px rgba(0,0,0,.12);
+
+  /* Type */
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body { font-family: var(--font); background: var(--bg); color: var(--text-1); }
+
+/* Inter from Google (loads if available) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ============================================================
+   LAYOUT SHELL
+   ============================================================ */
+.page-shell {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+/* ============================================================
+   PAGE HEADER
+   ============================================================ */
 .page-header {
-    display:flex; align-items:center; justify-content:space-between;
-    margin-bottom:18px; flex-wrap:wrap; gap:10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
 }
-.page-title { font-size:22px; font-weight:700; color:#1e293b; margin:0; }
-.header-actions { display:flex; gap:8px; flex-wrap:wrap; }
 
-/* ===== BUTTONS ===== */
+.page-header-left h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+
+.page-header-left p {
+  font-size: 13px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ============================================================
+   BUTTONS — complete system
+   ============================================================ */
 .btn {
-    padding:8px 14px; border-radius:8px; font-size:13px; font-weight:600;
-    cursor:pointer; border:none; display:inline-flex; align-items:center;
-    gap:5px; transition:all 0.2s; text-decoration:none; white-space:nowrap;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  border: none;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: background .15s, box-shadow .15s, transform .1s, opacity .15s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
-.btn-primary   { background:#2563eb; color:white; }
-.btn-primary:hover   { background:#1d4ed8; }
-.btn-success   { background:#16a34a; color:white; }
-.btn-success:hover   { background:#15803d; }
-.btn-info      { background:#0891b2; color:white; }
-.btn-info:hover      { background:#0e7490; }
-.btn-secondary { background:#6366f1; color:white; }
-.btn-secondary:hover { background:#4f46e5; }
-.btn-ghost     { background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; }
-.btn-ghost:hover     { background:#e2e8f0; }
-.btn-warning   { background:#f59e0b; color:white; }
-.btn-warning:hover   { background:#d97706; }
-.btn-sm { padding:5px 9px; font-size:12px; border-radius:6px; }
-.btn-icon { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
-.btn-icon:hover { background:#dc2626; color:white; }
+.btn:active { transform: scale(.97); }
 
-/* ===== ADD PRODUCT FORM ===== */
-.add-product-form {
-    background:white; border-radius:12px; padding:22px;
-    margin-bottom:18px; box-shadow:0 1px 3px rgba(0,0,0,0.07);
-    border:1px solid #e2e8f0;
+.btn-primary   { background: var(--blue);   color: var(--text-inv); }
+.btn-primary:hover   { background: var(--blue-dk); box-shadow: 0 2px 8px rgba(37,99,235,.35); }
+
+.btn-success   { background: var(--green);  color: var(--text-inv); }
+.btn-success:hover   { background: var(--green-dk); box-shadow: 0 2px 8px rgba(22,163,74,.35); }
+
+.btn-info      { background: #0891B2;        color: var(--text-inv); }
+.btn-info:hover      { background: #0E7490; }
+
+.btn-secondary { background: var(--violet); color: var(--text-inv); }
+.btn-secondary:hover { background: #4F46E5; }
+
+.btn-ghost {
+  background: var(--surface);
+  color: var(--text-2);
+  border: 1.5px solid var(--border);
 }
-.add-product-form h3 {
-    font-size:15px; font-weight:700; color:#1e293b;
-    margin:0 0 18px; padding-bottom:12px; border-bottom:1px solid #f1f5f9;
-    display:flex; align-items:center; gap:8px;
+.btn-ghost:hover { background: var(--bg); border-color: var(--border-2); }
+
+.btn-icon {
+  background: var(--red-lt);
+  color: var(--red);
+  border: 1.5px solid var(--red-mid);
 }
+.btn-icon:hover { background: var(--red); color: var(--text-inv); }
+
+.btn-warning { background: #F59E0B; color: var(--text-inv); }
+.btn-warning:hover { background: var(--amber); }
+
+/* Sizes */
+.btn-sm { padding: 6px 10px; font-size: 12px; border-radius: var(--r-sm); gap: 4px; }
+.btn-xs { padding: 4px 8px;  font-size: 11px; border-radius: 5px;         gap: 3px; }
+
+/* ============================================================
+   STAT CARDS
+   ============================================================ */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--sh-sm);
+  transition: box-shadow .2s, transform .2s;
+}
+.stat-card:hover { box-shadow: var(--sh-md); transform: translateY(-1px); }
+
+.stat-icon {
+  width: 46px; height: 46px;
+  border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.stat-icon.blue   { background: var(--blue-lt);   color: var(--blue); }
+.stat-icon.green  { background: var(--green-lt);  color: var(--green); }
+.stat-icon.amber  { background: var(--amber-lt);  color: var(--amber); }
+.stat-icon.red    { background: var(--red-lt);    color: var(--red); }
+
+.stat-info .val {
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+.stat-info .lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-top: 3px;
+}
+
+/* ============================================================
+   ADD PRODUCT PANEL
+   ============================================================ */
+.add-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 22px 24px;
+  margin-bottom: 20px;
+  box-shadow: var(--sh-sm);
+}
+
+.add-panel-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 16px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.add-panel-title i { color: var(--blue); }
+
+/* Form elements */
 .form-grid {
-    display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 12px;
 }
-.form-group { display:flex; flex-direction:column; gap:4px; }
-.form-group label { font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.04em; }
-.form-group input, .form-group select {
-    padding:9px 11px; border:1.5px solid #e2e8f0; border-radius:8px;
-    font-size: max(16px, 13px);
-    color:#1e293b; outline:none; width:100%;
-    transition:border-color 0.2s, box-shadow 0.2s;
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
-.form-group input:focus, .form-group select:focus {
-    border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.1);
+
+.form-group label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: .05em;
 }
+
+.form-group input,
+.form-group select {
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  font-family: var(--font);
+  font-size: max(16px, 13px);
+  color: var(--text-1);
+  outline: none;
+  width: 100%;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.form-group input:focus,
+.form-group select:focus {
+  background: var(--surface);
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+}
+.form-group input::placeholder { color: var(--text-3); }
+
 .form-actions {
-    display:flex; gap:8px; justify-content:flex-end;
-    margin-top:18px; padding-top:14px; border-top:1px solid #f1f5f9;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
 }
 
-/* ===== TABLE CONTAINER ===== */
-.table-container {
-    background:white; border-radius:12px;
-    box-shadow:0 1px 3px rgba(0,0,0,0.07);
-    border:1px solid #f1f5f9; overflow:hidden;
+/* ============================================================
+   PRODUCT TABLE CARD
+   ============================================================ */
+.table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-sm);
+  overflow: hidden;
 }
-.table-header {
-    display:flex; align-items:center; justify-content:space-between;
-    padding:14px 18px; border-bottom:1px solid #f1f5f9;
-}
-.table-title { font-size:14px; font-weight:700; color:#1e293b; display:flex; align-items:center; gap:7px; }
 
-/* ===== DESKTOP TABLE ===== */
-.desktop-table-wrap { overflow-x:auto; -webkit-overflow-scrolling: touch; }
-table { width:100%; border-collapse:collapse; min-width: 900px; }
+.table-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.table-card-title i { color: var(--blue); font-size: 12px; }
+
+#resultCount {
+  font-size: 12px;
+  color: var(--text-3);
+  font-weight: 500;
+  background: var(--bg);
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+
+/* ============================================================
+   DESKTOP TABLE
+   ============================================================ */
+.desktop-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 960px;
+}
+
+thead tr {
+  background: var(--bg);
+  border-bottom: 2px solid var(--border);
+}
+
 th {
-    background:#f8fafc; padding:10px 10px;
-    text-align:left; font-size:10px; font-weight:700;
-    color:#64748b; text-transform:uppercase; letter-spacing:0.06em;
-    border-bottom:1px solid #e2e8f0; white-space:nowrap;
+  padding: 11px 14px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  white-space: nowrap;
 }
+
 td {
-    padding:10px 10px; font-size:13px; color:#374151;
-    border-bottom:1px solid #f8fafc; vertical-align:middle;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--text-2);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
 }
-tr:last-child td { border-bottom:none; }
-tr:hover td { background:#fafbff; }
-tr.low-stock td { background:#fef9f9; }
-tr.low-stock:hover td { background:#fef2f2; }
-.stock-value { font-weight:700; }
-.stock-value.low { color:#dc2626; }
 
-/* ===== SELL/RESTOCK ACTION GROUP (DESKTOP) ===== */
-.action-group {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    flex-wrap: nowrap;
-}
-/* Sell+Restock block: two pairs stacked on tight screens */
-.sell-restock-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    min-width: 0;
-}
-.sell-restock-pair {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-}
+tr:last-child td { border-bottom: none; }
+
+tbody tr:hover td { background: #F8FAFF; }
+
+tbody tr.low-stock td { background: #FFFBFB; }
+tbody tr.low-stock:hover td { background: var(--red-lt); }
+
+.product-name-cell { font-weight: 600; color: var(--text-1); font-size: 13px; }
+.product-cat-cell  { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+.row-index { color: var(--text-3); font-size: 11px; font-weight: 600; }
+
+/* ============================================================
+   SELL / RESTOCK INPUTS (DESKTOP)
+   ============================================================ */
+.sell-restock-group { display: flex; flex-direction: column; gap: 6px; }
+.sell-restock-pair  { display: flex; gap: 6px; align-items: center; }
+
 .qty-input {
-    width: 56px; padding: 5px 6px; border: 1.5px solid #e2e8f0;
-    border-radius: 6px; font-size: 12px; text-align: center; outline: none;
-    flex-shrink: 0;
+  width: 96px !important;
+  padding: 7px 10px !important;
+  min-height: 34px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font);
+  font-size: 13px !important;
+  color: var(--text-1);
+  outline: none;
+  flex-shrink: 0;
+  transition: border-color .15s, box-shadow .15s;
 }
-.qty-input:focus { border-color:#2563eb; }
+.qty-input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(37,99,235,.1); }
+.qty-input::placeholder { color: var(--text-3); font-size: 11px; }
+
 .minstock-input {
-    width: 56px; padding: 5px 6px; border: 1.5px solid #e2e8f0;
-    border-radius: 6px; font-size: 12px; text-align: center; outline: none;
-    flex-shrink: 0;
+  width: 64px;
+  padding: 5px 7px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text-1);
+  outline: none;
+  text-align: center;
+  transition: border-color .15s;
 }
-.minstock-input:focus { border-color:#2563eb; }
+.minstock-input:focus { border-color: var(--blue); }
 
-/* ===== MOBILE CARDS ===== */
-.mobile-products { display:none; }
-.product-card {
-    background:white; border-radius:12px; padding:16px;
-    margin-bottom:10px; border:1px solid #f1f5f9;
-    box-shadow:0 1px 3px rgba(0,0,0,0.06);
+.minstock-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 5px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
 }
-.product-card.low-stock { border-left:3px solid #dc2626; }
-.product-card-header {
-    display:flex; justify-content:space-between;
-    align-items:flex-start; margin-bottom:12px;
-}
-.product-card-name { font-size:15px; font-weight:700; color:#1e293b; }
-.product-card-category { font-size:11px; color:#94a3b8; margin-top:2px; }
-.product-card-stats {
-    display:grid; grid-template-columns:repeat(3,1fr);
-    gap:8px; margin-bottom:12px;
-    background:#f8fafc; border-radius:8px; padding:10px;
-}
-.product-card-stat label { font-size:10px; color:#94a3b8; font-weight:600; text-transform:uppercase; display:block; }
-.product-card-stat span { font-size:14px; font-weight:700; color:#1e293b; }
-.product-card-actions {
-    display:flex; flex-direction:column; gap:8px;
-}
-.action-row {
-    display:flex; gap:6px; align-items:center;
-}
-.action-row label { font-size:11px; color:#64748b; font-weight:600; min-width:64px; flex-shrink: 0; }
-.action-row-inputs { display:flex; gap:6px; align-items:center; flex:1; min-width:0; }
-.qty-input-mobile {
-    flex:1; padding:10px 8px; border:1.5px solid #e2e8f0;
-    border-radius:7px; text-align:center; outline:none;
-    min-width:0;
-    font-size: 16px;
-}
-.qty-input-mobile:focus { border-color:#2563eb; }
-.card-divider { height:1px; background:#f1f5f9; margin:4px 0; }
-
-/* ===== VARIANT CARDS (MOBILE) ===== */
-.card-variant-section {
-    margin-top:10px; border-top:1px solid #e0e7ff;
-    padding-top:10px;
-}
-.card-variant-title {
-    font-size:11px; font-weight:700; color:#6366f1;
-    text-transform:uppercase; letter-spacing:0.06em;
-    display:flex; align-items:center; gap:5px; margin-bottom:8px;
-}
-.variant-card {
-    background:#f8faff; border-radius:8px; padding:10px;
-    margin-bottom:8px; border:1px solid #e0e7ff;
-}
-.variant-card-header {
-    display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;
-}
-.variant-card-name { font-size:13px; font-weight:700; color:#1e293b; }
-.variant-card-type {
-    font-size:10px; background:#e0e7ff; color:#4338ca;
-    padding:2px 7px; border-radius:20px; font-weight:600; text-transform:capitalize;
-}
-.variant-card-stats {
-    display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-bottom:8px;
+.minstock-inline > label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .04em;
 }
 
-/* ===== BADGES ===== */
-.badge {
-    display:inline-flex; align-items:center; padding:3px 9px;
-    border-radius:20px; font-size:10px; font-weight:700; letter-spacing:0.02em;
-    white-space: nowrap;
-}
-.badge-ok   { background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; }
-.badge-near { background:#fff7ed; color:#ea580c; border:1px solid #fed7aa; }
-.badge-low  { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
-.has-variants-badge {
-    display:inline-flex; align-items:center; gap:3px;
-    background:#eff6ff; color:#2563eb; font-size:10px;
-    padding:2px 7px; border-radius:10px; font-weight:700; border:1px solid #bfdbfe;
-    white-space: nowrap;
-}
+/* ============================================================
+   INLINE STOCK EDIT
+   ============================================================ */
+.stock-edit-group { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.stock-val { font-weight: 700; color: var(--text-1); font-size: 14px; }
+.stock-val.low { color: var(--red); }
 
-/* ===== EXPAND BUTTON ===== */
-.btn-expand {
-    width:28px; height:28px; background:#f1f5f9; border:1px solid #e2e8f0;
-    border-radius:5px; cursor:pointer; font-size:10px; color:#64748b;
-    display:inline-flex; align-items:center; justify-content:center;
-    transition:all 0.2s; flex-shrink:0;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-}
-.btn-expand:hover { background:#eff6ff; border-color:#2563eb; color:#2563eb; }
-
-/* ===== VARIANTS ROW (DESKTOP) ===== */
-.variants-row td { padding:0 !important; border-bottom:2px solid #e0e7ff !important; }
-.variants-container { padding:12px 16px 12px 42px; background:#f8faff; }
-.variants-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-.variants-title {
-    font-size:10px; font-weight:700; color:#6366f1;
-    text-transform:uppercase; letter-spacing:0.08em;
-    display:flex; align-items:center; gap:5px;
-}
-.variants-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.variants-table { width:100%; border-collapse:collapse; font-size:12px; min-width: 700px; }
-.variants-table th {
-    background:#e0e7ff; color:#4338ca; padding:6px 9px; font-size:9px; white-space: nowrap;
-}
-.variants-table td { padding:7px 9px; border-bottom:1px solid #e8edf5; background:white; }
-.variants-table tr:last-child td { border-bottom:none; }
-.variants-table tr.low-stock td { background:#fef9f9; }
-
-/* ===== INLINE STOCK EDIT ===== */
-.stock-edit-group { display:flex; align-items:center; gap:3px; }
 .stock-edit-input {
-    width:55px; padding:4px 5px; border:1.5px solid #e2e8f0;
-    border-radius:5px; font-size:12px; text-align:center; outline:none;
+  width: 60px;
+  padding: 4px 7px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font);
+  font-size: 12px;
+  text-align: center;
+  outline: none;
+  display: none;
 }
-.stock-edit-input:focus { border-color:#2563eb; }
+.stock-edit-input:focus { border-color: var(--blue); }
 
-/* ===== LOADING & EMPTY ===== */
-.loading {
-    display:flex; align-items:center; justify-content:center;
-    padding:48px; flex-direction:column; gap:10px;
+.variant-stock-block { display: flex; flex-direction: column; gap: 4px; }
+
+/* ============================================================
+   EXPAND BUTTON
+   ============================================================ */
+.btn-expand {
+  width: 26px; height: 26px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-size: 10px;
+  color: var(--text-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s;
+  flex-shrink: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
+.btn-expand:hover { background: var(--blue-lt); border-color: var(--blue); color: var(--blue); }
+
+/* ============================================================
+   VARIANT ROW (DESKTOP)
+   ============================================================ */
+.variants-row > td {
+  padding: 0 !important;
+  border-bottom: 2px solid var(--violet-mid) !important;
+}
+
+.variants-container {
+  padding: 14px 20px 14px 56px;
+  background: #F9FAFF;
+}
+
+.variants-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.variants-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--violet);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.variants-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+.variants-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 720px;
+  background: var(--surface);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  box-shadow: var(--sh-sm);
+}
+
+.variants-table thead tr { background: var(--violet-mid); border-bottom: none; }
+.variants-table th { color: #3730A3; font-size: 9px; padding: 7px 10px; }
+.variants-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.variants-table tr:last-child td { border-bottom: none; }
+.variants-table tr.low-stock td { background: #FFFBFB; }
+.variants-table tr:hover td { background: #F8FAFF; }
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+.badge-ok   { background: var(--green-lt);  color: var(--green);  border: 1px solid var(--green-mid);  }
+.badge-near { background: var(--amber-lt);  color: var(--amber);  border: 1px solid var(--amber-mid);  }
+.badge-low  { background: var(--red-lt);    color: var(--red);    border: 1px solid var(--red-mid);    }
+
+.pill-variants {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--blue-lt);
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  border: 1px solid var(--blue-mid);
+  white-space: nowrap;
+}
+.pill-variant-low {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--red-lt);
+  color: var(--red);
+  border: 1px solid var(--red-mid);
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.tag-type {
+  background: var(--violet-lt);
+  color: var(--violet);
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* ============================================================
+   LOADING & EMPTY
+   ============================================================ */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 56px 24px;
+}
+
 .spinner {
-    width:30px; height:30px; border:3px solid #e2e8f0;
-    border-top-color:#2563eb; border-radius:50%;
-    animation:spin 0.8s linear infinite;
+  width: 28px; height: 28px;
+  border: 3px solid var(--border);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
 }
-@keyframes spin { to { transform:rotate(360deg); } }
-.empty-state { text-align:center; padding:56px 20px; color:#94a3b8; }
-.empty-state i { font-size:44px; margin-bottom:14px; color:#cbd5e1; display:block; }
-.empty-state h3 { color:#475569; font-size:17px; margin-bottom:8px; }
-.empty-state p { font-size:13px; margin-bottom:18px; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-/* ===== MODALS ===== */
+.loading-state span { font-size: 13px; color: var(--text-3); }
+
+.empty-state {
+  text-align: center;
+  padding: 60px 24px;
+  display: none;
+}
+.empty-state .empty-icon {
+  width: 64px; height: 64px;
+  background: var(--bg);
+  border: 2px dashed var(--border-2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: var(--text-3);
+  margin: 0 auto 16px;
+}
+.empty-state h3 { font-size: 16px; font-weight: 700; color: var(--text-1); margin-bottom: 6px; }
+.empty-state p  { font-size: 13px; color: var(--text-3); margin-bottom: 20px; }
+
+/* ============================================================
+   MODALS
+   ============================================================ */
 .modal {
-    display:none; position:fixed; inset:0;
-    background:rgba(15,23,42,0.55); z-index:1000;
-    align-items:flex-end; justify-content:center;
-    backdrop-filter:blur(2px); padding:0;
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, .5);
+  z-index: 1000;
+  align-items: flex-end;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+  padding: 0;
 }
-.modal.show { display:flex; }
+.modal.show { display: flex; }
+
 .modal-content {
-    background:white; border-radius:20px 20px 0 0; width:100%;
-    max-width:600px; max-height:92vh; overflow-y:auto;
-    box-shadow:0 -8px 40px rgba(0,0,0,0.18);
-    animation:modalSlideUp 0.25s ease;
+  background: var(--surface);
+  border-radius: 22px 22px 0 0;
+  width: 100%;
+  max-width: 580px;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: var(--sh-up);
+  animation: slideUp .22s cubic-bezier(.32,.72,0,1);
 }
-@keyframes modalSlideUp {
-    from { transform:translateY(60px); opacity:0; }
-    to   { transform:translateY(0);    opacity:1; }
+@keyframes slideUp {
+  from { transform: translateY(48px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
+
+.modal-handle {
+  width: 36px; height: 4px;
+  background: var(--border);
+  border-radius: 4px;
+  margin: 10px auto 0;
+}
+
 .modal-header {
-    padding:18px 22px 14px; border-bottom:1px solid #f1f5f9;
-    display:flex; justify-content:space-between; align-items:center;
-    position:sticky; top:0; background:white; z-index:1;
+  padding: 14px 22px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
 }
-.modal-header::before {
-    content:''; display:block; position:absolute;
-    top:8px; left:50%; transform:translateX(-50%);
-    width:36px; height:4px; background:#e2e8f0; border-radius:4px;
+.modal-header h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-1);
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
-.modal-header h3 { margin:0; font-size:16px; font-weight:700; color:#1e293b; padding-top:6px; }
-.modal-body { padding:18px 22px; }
+
+.modal-body   { padding: 18px 22px; }
 .modal-footer {
-    padding:14px 22px; border-top:1px solid #f1f5f9;
-    display:flex; gap:8px; justify-content:flex-end;
-    position:sticky; bottom:0; background:white;
-    padding-bottom: max(14px, env(safe-area-inset-bottom));
+  padding: 14px 22px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  position: sticky;
+  bottom: 0;
+  background: var(--surface);
 }
+
 .close-btn {
-    width:32px; height:32px; border-radius:8px; background:#f1f5f9;
-    border:none; cursor:pointer; display:flex; align-items:center;
-    justify-content:center; color:#64748b; font-size:14px; transition:all 0.2s;
+  width: 30px; height: 30px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  font-size: 13px;
+  transition: all .15s;
 }
-.close-btn:hover { background:#e2e8f0; color:#1e293b; }
-.form-row { display:grid; grid-template-columns:1fr 1fr; gap:11px; }
-.form-hint { font-size:10px; color:#94a3b8; margin-top:3px; }
-.modal .form-group { margin-bottom:13px; }
+.close-btn:hover { background: var(--red-lt); border-color: var(--red-mid); color: var(--red); }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-hint { font-size: 10px; color: var(--text-3); margin-top: 3px; }
+.modal .form-group { margin-bottom: 14px; }
 .modal .form-group label {
-    font-size:11px; font-weight:700; color:#374151; display:block;
-    margin-bottom:4px; text-transform:uppercase; letter-spacing:0.04em;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+  display: block;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
 }
-.modal .form-group input, .modal .form-group select {
-    width:100%; padding:11px 13px; border:1.5px solid #e2e8f0;
-    border-radius:8px; outline:none;
-    transition:border-color 0.2s, box-shadow 0.2s;
-    font-size: 16px;
+.modal .form-group input,
+.modal .form-group select {
+  width: 100%;
+  padding: 11px 13px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  font-family: var(--font);
+  font-size: 16px;
+  color: var(--text-1);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
 }
-.modal .form-group input:focus, .modal .form-group select:focus {
-    border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.1);
+.modal .form-group input:focus,
+.modal .form-group select:focus {
+  background: var(--surface);
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
 }
+
 .product-badge {
-    display:inline-flex; align-items:center; gap:6px;
-    background:#eff6ff; color:#1d4ed8; padding:7px 12px;
-    border-radius:8px; font-size:13px; font-weight:600;
-    margin-bottom:16px; border:1px solid #bfdbfe; width:100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--blue-lt);
+  color: var(--blue-dk);
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  border: 1px solid var(--blue-mid);
 }
+
 .warning-box {
-    background:#fffbeb; border:1px solid #fcd34d; border-radius:8px;
-    padding:10px 13px; font-size:12px; color:#92400e; margin-bottom:14px;
-    display:flex; align-items:flex-start; gap:7px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--amber-lt);
+  border: 1px solid var(--amber-mid);
+  border-radius: var(--r-md);
+  padding: 11px 14px;
+  font-size: 12px;
+  color: #78350F;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+.warning-box i { color: var(--amber); flex-shrink: 0; margin-top: 1px; }
+
+/* ============================================================
+   MOBILE SEARCH BAR
+   ============================================================ */
+.mobile-search {
+  display: none;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.mobile-search input {
+  flex: 1;
+  padding: 10px 13px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  font-family: var(--font);
+  font-size: 16px;
+  color: var(--text-1);
+  outline: none;
+}
+.mobile-search input:focus { border-color: var(--blue); }
+.mobile-search select {
+  padding: 10px 11px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text-2);
+  outline: none;
 }
 
-/* ===== MOBILE SEARCH ===== */
-.mobile-search { display:none; gap:8px; margin-bottom:14px; }
-.mobile-search input, .mobile-search select {
-    padding:9px 11px; border:1.5px solid #e2e8f0; border-radius:8px;
-    font-size:16px; outline:none;
-}
-.mobile-search input { flex:1; }
+/* ============================================================
+   MOBILE CARDS
+   ============================================================ */
+.mobile-products { display: none; padding: 12px; }
 
-/* ===== SAFE AREA ===== */
+.product-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  margin-bottom: 10px;
+  box-shadow: var(--sh-sm);
+  transition: box-shadow .2s;
+}
+.product-card:hover { box-shadow: var(--sh-md); }
+.product-card.low-stock { border-left: 3px solid var(--red); }
+
+.product-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+.product-card-name { font-size: 15px; font-weight: 700; color: var(--text-1); }
+.product-card-category { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+.product-card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+  background: var(--bg);
+  border-radius: var(--r-md);
+  padding: 12px;
+}
+.product-card-stat label {
+  font-size: 10px;
+  color: var(--text-3);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  display: block;
+  margin-bottom: 3px;
+}
+.product-card-stat span { font-size: 14px; font-weight: 700; color: var(--text-1); }
+
+.product-card-actions { display: flex; flex-direction: column; gap: 8px; }
+
+.action-row { display: flex; gap: 8px; align-items: center; }
+.action-row > label {
+  font-size: 11px;
+  color: var(--text-2);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+.action-row-inputs { display: flex; gap: 6px; align-items: center; flex: 1; min-width: 0; }
+
+.qty-input-mobile {
+  flex: 1;
+  padding: 11px 10px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  font-family: var(--font);
+  font-size: 16px !important;
+  color: var(--text-1);
+  text-align: center;
+  outline: none;
+  min-width: 0;
+  min-height: 44px;
+  transition: border-color .15s;
+}
+.qty-input-mobile:focus { border-color: var(--blue); background: var(--surface); }
+.qty-input-mobile::placeholder { color: var(--text-3); font-size: 12px; }
+.action-row-inputs .btn { min-height: 44px; }
+
+.mobile-minstock-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 10px;
+}
+.mobile-minstock-box > label {
+  font-size: 10px;
+  color: var(--text-3);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  display: block;
+  margin-bottom: 6px;
+}
+.mobile-minstock-controls { display: flex; gap: 6px; }
+
+/* Variant mobile */
+.card-variant-section { margin-top: 14px; border-top: 1px solid var(--violet-mid); padding-top: 14px; }
+.card-variant-title {
+  font-size: 11px; font-weight: 700; color: var(--violet);
+  text-transform: uppercase; letter-spacing: .06em;
+  display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
+}
+
+.variant-card {
+  background: #F9FAFF;
+  border: 1px solid var(--violet-mid);
+  border-radius: var(--r-md);
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.variant-card.low-stock { border-color: var(--red-mid); background: var(--red-lt); border-left: 3px solid var(--red); }
+.variant-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.variant-card-name { font-size: 13px; font-weight: 700; color: var(--text-1); }
+.variant-card-type {
+  font-size: 10px;
+  background: var(--violet-lt);
+  color: var(--violet);
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-weight: 600;
+  text-transform: capitalize;
+  margin-left: 4px;
+}
+.variant-card-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; }
+
+/* ============================================================
+   SAFE AREA
+   ============================================================ */
 @supports (padding: max(0px)) {
-    .main-content {
-        padding-left: max(12px, env(safe-area-inset-left));
-        padding-right: max(12px, env(safe-area-inset-right));
-    }
+  .page-shell {
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
 }
 
-/* ===== RESPONSIVE ===== */
-
-/* Large tablets */
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
 @media (max-width: 1100px) {
-    .summary-cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* Tablets: switch to card view */
 @media (max-width: 860px) {
-    .desktop-table-wrap { display: none; }
-    .mobile-products { display: block; }
-    .mobile-search { display: flex; }
-
-    .summary-cards { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-
-    /* Compact header — show icons only, label in tooltip */
-    .page-title { font-size: 19px; }
-    .header-actions .btn-label { display: none; }
-
-    .add-product-form { padding: 16px; }
-    .form-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-
-    .form-row { grid-template-columns: 1fr; }
+  .desktop-table-wrap { display: none; }
+  .mobile-products { display: block; }
+  .mobile-search { display: flex; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .page-header-left h1 { font-size: 19px; }
+  .header-actions .btn-label { display: none; }
+  .add-panel { padding: 16px; }
+  .form-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-row { grid-template-columns: 1fr; }
 }
 
-/* Mobile phones */
 @media (max-width: 600px) {
-    .summary-cards { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    .summary-card { padding: 12px; gap: 10px; }
-    .summary-card .icon { width: 40px; height: 40px; font-size: 17px; border-radius: 10px; }
-    .summary-card .info h3 { font-size: 17px; }
-
-    .page-header { flex-direction: column; align-items: flex-start; gap: 8px; }
-    .header-actions { width: 100%; justify-content: flex-end; }
-    .header-actions .btn { padding: 8px 11px; font-size: 13px; }
-    /* Show labels again when they have full row */
-    .header-actions .btn-label { display: inline; }
-
-    .form-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-
-    /* Bigger touch targets */
-    .qty-input-mobile { padding: 12px 8px; font-size: 16px; }
-    .product-card-stats { grid-template-columns: repeat(2, 1fr); }
-    .product-card { padding: 14px; }
+  .page-shell { padding: 16px 14px 40px; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .stat-card { padding: 14px 12px; gap: 10px; }
+  .stat-icon { width: 40px; height: 40px; font-size: 16px; }
+  .stat-info .val { font-size: 18px; }
+  .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .header-actions { width: 100%; justify-content: flex-end; }
+  .header-actions .btn-label { display: inline; }
+  .form-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .product-card-stats { grid-template-columns: repeat(2, 1fr); }
+  .product-card { padding: 14px; }
 }
 
-/* Small phones */
 @media (max-width: 420px) {
-    .summary-cards { gap: 6px; }
-    .summary-card .info h3 { font-size: 15px; }
-    .page-title { font-size: 17px; }
+  .stat-grid { gap: 6px; }
+  .stat-info .val { font-size: 16px; }
+  .page-header-left h1 { font-size: 17px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .product-card { padding: 12px; }
+  .variant-card { padding: 10px; }
+}
 
-    /* Stack header buttons to 2 per row */
-    .header-actions { gap: 6px; }
-
-    .form-grid { grid-template-columns: 1fr; }
-
-    /* Tighter card padding */
-    .product-card { padding: 12px; }
-    .variant-card { padding: 8px; }
+@media (max-width: 860px) {
+  .action-row { align-items: stretch; }
+  .action-row > label { padding-top: 12px; }
 }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="page-shell">
 
-<!-- Mobile Search (kept for backward compat with app2.js) -->
-<div class="mobile-search">
-    <input type="text" id="mobileSearchInput" placeholder="Search products...">
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <input type="text" id="mobileSearchInput" placeholder="Search products…">
     <select id="mobileCategoryFilter"><option value="">All</option></select>
     <button class="btn btn-primary btn-sm" onclick="mobileSearch()">
-        <i class="fas fa-search"></i>
+      <i class="fas fa-search"></i>
     </button>
-</div>
+  </div>
 
-<!-- Page Header -->
-<div class="page-header">
-    <div>
-        <h1 class="page-title">Products</h1>
-        <p style="margin:2px 0 0;font-size:12px;color:#94a3b8;">Manage your inventory</p>
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Products</h1>
+      <p>Manage your inventory</p>
     </div>
     <div class="header-actions">
-        <button class="btn btn-ghost" onclick="downloadExcel()">
-            <i class="fas fa-file-excel" style="color:#16a34a;"></i>
-            <span class="btn-label">Excel</span>
-        </button>
-        <button class="btn btn-ghost" onclick="openGoogleSheetsModal()">
-            <i class="fas fa-cloud" style="color:#0891b2;"></i>
-            <span class="btn-label">Sheets</span>
-        </button>
-        <button class="btn btn-primary" onclick="toggleAddForm()">
-            <i class="fas fa-plus"></i>
-            <span class="btn-label">Add Product</span>
-        </button>
+      <button class="btn btn-ghost" onclick="downloadExcel()">
+        <i class="fas fa-file-excel" style="color:#16A34A;"></i>
+        <span class="btn-label">Excel</span>
+      </button>
+      <button class="btn btn-ghost" onclick="openGoogleSheetsModal()">
+        <i class="fas fa-cloud" style="color:#0891B2;"></i>
+        <span class="btn-label">Sheets</span>
+      </button>
+      <button class="btn btn-primary" onclick="toggleAddForm()">
+        <i class="fas fa-plus"></i>
+        <span class="btn-label">Add Product</span>
+      </button>
     </div>
-</div>
+  </div>
 
-<!-- Summary Cards -->
-<div class="summary-cards">
-    <div class="summary-card">
-        <div class="icon blue"><i class="fas fa-boxes-stacked"></i></div>
-        <div class="info"><h3 id="totalProducts">0</h3><p>Total Products</p></div>
+  <!-- Stat Cards -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fas fa-boxes-stacked"></i></div>
+      <div class="stat-info">
+        <div class="val" id="totalProducts">0</div>
+        <div class="lbl">Total Products</div>
+      </div>
     </div>
-    <div class="summary-card">
-        <div class="icon green"><i class="fas fa-cubes"></i></div>
-        <div class="info"><h3 id="totalUnits">0</h3><p>Total Units</p></div>
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="fas fa-cubes"></i></div>
+      <div class="stat-info">
+        <div class="val" id="totalUnits">0</div>
+        <div class="lbl">Total Units</div>
+      </div>
     </div>
-    <div class="summary-card">
-        <div class="icon orange"><i class="fas fa-chart-line"></i></div>
-        <div class="info"><h3 id="totalValue">NPR 0</h3><p>Inventory Value</p></div>
+    <div class="stat-card">
+      <div class="stat-icon amber"><i class="fas fa-chart-line"></i></div>
+      <div class="stat-info">
+        <div class="val" id="totalValue">NPR 0</div>
+        <div class="lbl">Inventory Value</div>
+      </div>
     </div>
-    <div class="summary-card">
-        <div class="icon red"><i class="fas fa-triangle-exclamation"></i></div>
-        <div class="info"><h3 id="lowStockCount">0</h3><p>Low Stock</p></div>
+    <div class="stat-card">
+      <div class="stat-icon red"><i class="fas fa-triangle-exclamation"></i></div>
+      <div class="stat-info">
+        <div class="val" id="lowStockCount">0</div>
+        <div class="lbl">Low Stock</div>
+      </div>
     </div>
-</div>
+  </div>
 
-<!-- Add Product Form -->
-<div id="addProductForm" class="add-product-form" style="display:none;">
-    <h3><i class="fas fa-plus-circle" style="color:#2563eb;"></i> Add New Product</h3>
+  <!-- Add Product Panel -->
+  <div id="addProductForm" class="add-panel" style="display:none;">
+    <div class="add-panel-title">
+      <i class="fas fa-plus-circle"></i> Add New Product
+    </div>
     <form id="productForm" onsubmit="handleAddProduct(event)">
-        <div class="form-grid">
-            <div class="form-group">
-                <label>Product Name *</label>
-                <input type="text" id="productName" name="name" placeholder="e.g. Milk Tea" required>
-            </div>
-            <div class="form-group">
-                <label>Category</label>
-                <input type="text" id="productCategory" name="category" list="categoryList" placeholder="e.g. Beverages">
-                <datalist id="categoryList"></datalist>
-            </div>
-            <div class="form-group">
-                <label>Barcode</label>
-                <input type="text" id="productBarcode" name="barcode" placeholder="Scan or type" inputmode="text">
-            </div>
-            <div class="form-group">
-                <label>Initial Stock</label>
-                <input type="number" id="productStock" name="stock" min="0" value="0" inputmode="numeric">
-            </div>
-            <div class="form-group">
-                <label>Min Stock</label>
-                <input type="number" id="productMinStock" name="min_stock" min="0" value="10" inputmode="numeric">
-            </div>
-            <div class="form-group">
-                <label>Cost Price (NPR) *</label>
-                <input type="number" id="productCostPrice" name="cost_price" min="0" step="0.01" placeholder="0.00" required inputmode="decimal">
-            </div>
-            <div class="form-group">
-                <label>Selling Price (NPR) *</label>
-                <input type="number" id="productSellingPrice" name="selling_price" min="0" step="0.01" placeholder="0.00" required inputmode="decimal">
-            </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Product Name *</label>
+          <input type="text" id="productName" name="name" placeholder="e.g. Milk Tea" required>
         </div>
-        <div class="form-actions">
-            <button type="button" class="btn btn-ghost" onclick="toggleAddForm()">
-                <i class="fas fa-times"></i> Cancel
-            </button>
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-check"></i> Add Product
-            </button>
+        <div class="form-group">
+          <label>Category</label>
+          <input type="text" id="productCategory" name="category" list="categoryList" placeholder="e.g. Beverages">
+          <datalist id="categoryList"></datalist>
         </div>
-    </form>
-</div>
-
-<!-- Products Table -->
-<div class="table-container">
-    <div class="table-header">
-        <span class="table-title">
-            <i class="fas fa-list" style="color:#2563eb;"></i> Product List
-        </span>
-        <span id="resultCount" style="font-size:12px;color:#94a3b8;font-weight:500;"></span>
-    </div>
-
-    <div id="loadingSpinner" class="loading">
-        <div class="spinner"></div>
-        <span style="font-size:12px;color:#94a3b8;">Loading...</span>
-    </div>
-
-    <div id="emptyState" class="empty-state" style="display:none;">
-        <i class="fas fa-boxes-stacked"></i>
-        <h3>No Products Found</h3>
-        <p>Add your first product to get started.</p>
-        <button class="btn btn-primary" onclick="toggleAddForm()">
-            <i class="fas fa-plus"></i> Add Product
+        <div class="form-group">
+          <label>Barcode</label>
+          <input type="text" id="productBarcode" name="barcode" placeholder="Scan or type" inputmode="text">
+        </div>
+        <div class="form-group">
+          <label>Initial Stock</label>
+          <input type="number" id="productStock" name="stock" min="0" value="0" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label>Min Stock Alert</label>
+          <input type="number" id="productMinStock" name="min_stock" min="0" value="10" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label>Cost Price (NPR) *</label>
+          <input type="number" id="productCostPrice" name="cost_price" min="0" step="0.01" placeholder="0.00" required inputmode="decimal">
+        </div>
+        <div class="form-group">
+          <label>Selling Price (NPR) *</label>
+          <input type="number" id="productSellingPrice" name="selling_price" min="0" step="0.01" placeholder="0.00" required inputmode="decimal">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" onclick="toggleAddForm()">
+          <i class="fas fa-times"></i> Cancel
         </button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-check"></i> Save Product
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Products Table Card -->
+  <div class="table-card">
+    <div class="table-card-header">
+      <span class="table-card-title">
+        <i class="fas fa-list"></i> Product List
+      </span>
+      <span id="resultCount"></span>
+    </div>
+
+    <!-- Loading -->
+    <div id="loadingSpinner" class="loading-state">
+      <div class="spinner"></div>
+      <span>Loading products…</span>
+    </div>
+
+    <!-- Empty -->
+    <div id="emptyState" class="empty-state">
+      <div class="empty-icon"><i class="fas fa-boxes-stacked"></i></div>
+      <h3>No Products Yet</h3>
+      <p>Add your first product to start tracking inventory.</p>
+      <button class="btn btn-primary" onclick="toggleAddForm()">
+        <i class="fas fa-plus"></i> Add Product
+      </button>
     </div>
 
     <!-- Desktop Table -->
     <div class="desktop-table-wrap">
-        <table id="productsTable" style="display:none;">
-            <thead>
-                <tr>
-                    <th style="width:36px;">#</th>
-                    <th>Product</th>
-                    <th style="width:90px;">Price</th>
-                    <th style="width:110px;">Stock</th>
-                    <th style="width:80px;">Status</th>
-                    <th style="width:220px;">Sell / Restock</th>
-                    <th style="width:120px;">Min Stock</th>
-                    <th style="width:80px;">Actions</th>
-                </tr>
-            </thead>
-            <tbody id="productsBody"></tbody>
-        </table>
+      <table id="productsTable" style="display:none;">
+        <thead>
+          <tr>
+            <th style="width:36px;">#</th>
+            <th>Product</th>
+            <th style="width:90px;">Price</th>
+            <th style="width:140px;">Stock</th>
+            <th style="width:80px;">Status</th>
+            <th style="width:270px;">Sell / Restock</th>
+            <th style="width:130px;">Settings</th>
+            <th style="width:72px;">Delete</th>
+          </tr>
+        </thead>
+        <tbody id="productsBody"></tbody>
+      </table>
     </div>
 
     <!-- Mobile Cards -->
-    <div class="mobile-products" id="mobileProducts" style="padding:12px;"></div>
-</div>
+    <div class="mobile-products" id="mobileProducts"></div>
+  </div>
 
-<!-- Add Variant Modal -->
+</div><!-- /page-shell -->
+
+<!-- ── Add Variant Modal ── -->
 <div id="addVariantModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3><i class="fas fa-layer-group" style="color:#6366f1;margin-right:7px;"></i>Add Variant</h3>
-            <button class="close-btn" onclick="closeVariantModal()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body">
-            <div class="product-badge">
-                <i class="fas fa-box"></i>
-                <span id="variantProductName"></span>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Variant Type *</label>
-                    <select id="variantType">
-                        <option value="weight">⚖️ Weight</option>
-                        <option value="size">📐 Size</option>
-                        <option value="color">🎨 Color</option>
-                        <option value="flavor">🍓 Flavor</option>
-                        <option value="pack">📦 Pack Size</option>
-                        <option value="other">📌 Other</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Variant Value *</label>
-                    <input type="text" id="variantValue" placeholder="e.g. 80gm, XL, Red">
-                    <div class="form-hint">Specific value for this variant</div>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Stock *</label>
-                    <input type="number" id="variantStock" min="0" value="0" inputmode="numeric">
-                </div>
-                <div class="form-group">
-                    <label>Min Stock</label>
-                    <input type="number" id="variantMinStock" min="0" value="5" inputmode="numeric">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Cost Price (NPR)</label>
-                    <input type="number" id="variantCostPrice" min="0" step="0.01" placeholder="Optional" inputmode="decimal">
-                    <div class="form-hint">Blank = use product price</div>
-                </div>
-                <div class="form-group">
-                    <label>Selling Price (NPR)</label>
-                    <input type="number" id="variantSellingPrice" min="0" step="0.01" placeholder="Optional" inputmode="decimal">
-                    <div class="form-hint">Blank = use product price</div>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Barcode</label>
-                <input type="text" id="variantBarcode" placeholder="Optional">
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-ghost" onclick="closeVariantModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="submitAddVariant()">
-                <i class="fas fa-plus"></i> Add Variant
-            </button>
-        </div>
+  <div class="modal-content">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h3><i class="fas fa-layer-group" style="color:var(--violet);"></i> Add Variant</h3>
+      <button class="close-btn" onclick="closeVariantModal()"><i class="fas fa-times"></i></button>
     </div>
+    <div class="modal-body">
+      <div class="product-badge">
+        <i class="fas fa-box"></i>
+        <span id="variantProductName"></span>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Variant Type *</label>
+          <select id="variantType">
+            <option value="weight">⚖️ Weight</option>
+            <option value="size">📐 Size</option>
+            <option value="color">🎨 Color</option>
+            <option value="flavor">🍓 Flavor</option>
+            <option value="pack">📦 Pack Size</option>
+            <option value="other">📌 Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Variant Value *</label>
+          <input type="text" id="variantValue" placeholder="e.g. 80gm, XL, Red">
+          <div class="form-hint">Specific value for this variant</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Stock *</label>
+          <input type="number" id="variantStock" min="0" value="0" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label>Min Stock Alert</label>
+          <input type="number" id="variantMinStock" min="0" value="5" inputmode="numeric">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Cost Price (NPR)</label>
+          <input type="number" id="variantCostPrice" min="0" step="0.01" placeholder="Optional" inputmode="decimal">
+          <div class="form-hint">Leave blank to use product price</div>
+        </div>
+        <div class="form-group">
+          <label>Selling Price (NPR)</label>
+          <input type="number" id="variantSellingPrice" min="0" step="0.01" placeholder="Optional" inputmode="decimal">
+          <div class="form-hint">Leave blank to use product price</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Barcode</label>
+        <input type="text" id="variantBarcode" placeholder="Optional">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeVariantModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddVariant()">
+        <i class="fas fa-plus"></i> Add Variant
+      </button>
+    </div>
+  </div>
 </div>
 
-<!-- Google Sheets Modal -->
+<!-- ── Google Sheets Modal ── -->
 <div id="googleSheetsModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3><i class="fas fa-cloud" style="color:#0891b2;margin-right:7px;"></i>Google Sheets</h3>
-            <button class="close-btn" onclick="closeGoogleSheetsModal()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body">
-            <div class="warning-box">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>Share your Google Sheet with <strong>"Anyone with the link can edit"</strong> for write access.</span>
-            </div>
-            <div class="form-group">
-                <label>Google Sheet ID</label>
-                <input type="text" id="sheetId" placeholder="Paste your Sheet ID here">
-                <div class="form-hint">From URL: docs.google.com/spreadsheets/d/<strong>THIS_PART</strong>/edit</div>
-            </div>
-            <div class="form-group" style="margin-top:13px;">
-                <label>Google API Key</label>
-                <input type="password" id="apiKey" placeholder="Enter your API Key">
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-ghost" onclick="closeGoogleSheetsModal()">Cancel</button>
-            <button class="btn btn-secondary" onclick="importFromGoogleSheets()">
-                <i class="fas fa-upload"></i> Import
-            </button>
-            <button class="btn btn-primary" onclick="exportToGoogleSheets()">
-                <i class="fas fa-download"></i> Export
-            </button>
-        </div>
+  <div class="modal-content">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h3><i class="fas fa-cloud" style="color:#0891B2;"></i> Google Sheets</h3>
+      <button class="close-btn" onclick="closeGoogleSheetsModal()"><i class="fas fa-times"></i></button>
     </div>
+    <div class="modal-body">
+      <div class="warning-box">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Share your Google Sheet with <strong>"Anyone with the link can edit"</strong> for write access.</span>
+      </div>
+      <div class="form-group">
+        <label>Google Sheet ID</label>
+        <input type="text" id="sheetId" placeholder="Paste your Sheet ID here">
+        <div class="form-hint">From URL: docs.google.com/spreadsheets/d/<strong>THIS_PART</strong>/edit</div>
+      </div>
+      <div class="form-group" style="margin-top:14px;">
+        <label>Google API Key</label>
+        <input type="password" id="apiKey" placeholder="Enter your API Key">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeGoogleSheetsModal()">Cancel</button>
+      <button class="btn btn-secondary" onclick="importFromGoogleSheets()">
+        <i class="fas fa-upload"></i> Import
+      </button>
+      <button class="btn btn-primary" onclick="exportToGoogleSheets()">
+        <i class="fas fa-download"></i> Export
+      </button>
+    </div>
+  </div>
 </div>
 
 {% block extra_js %}
@@ -701,31 +1265,31 @@ var products = [];
 var expandedRows = new Set();
 var currentVariantProductId = null;
 var googleSheetsConfig = window.googleSheetsConfig || { sheetId: '', apiKey: '' };
- 
+
 // ─── action lock: prevents double-tap / rapid double-clicks ───
 var _actionLock = false;
 function _lock()   { _actionLock = true;  }
 function _unlock() { _actionLock = false; }
 function _locked() { return _actionLock;  }
- 
+
 // ===== Initialize =====
 document.addEventListener('DOMContentLoaded', () => {
     loadProducts();
     loadCategoriesForDatalist();
 });
- 
-// ===== Load Products (full fetch — only called on page load / add / delete) =====
+
+// ===== Load Products =====
 async function loadProducts() {
-    const spinner      = document.getElementById('loadingSpinner');
-    const emptyState   = document.getElementById('emptyState');
-    const table        = document.getElementById('productsTable');
-    const mobileWrap   = document.getElementById('mobileProducts');
- 
+    const spinner    = document.getElementById('loadingSpinner');
+    const emptyState = document.getElementById('emptyState');
+    const table      = document.getElementById('productsTable');
+    const mobileWrap = document.getElementById('mobileProducts');
+
     spinner.style.display    = 'flex';
     emptyState.style.display = 'none';
     table.style.display      = 'none';
     mobileWrap.innerHTML     = '';
- 
+
     try {
         const params = getQueryParams();
         const data   = await API.getProducts(params.search, params.category);
@@ -744,101 +1308,120 @@ async function loadProducts() {
         showToast('Failed to load products: ' + err.message, 'error');
     }
 }
- 
+
 // ===== Render Desktop Table =====
 function renderProducts(productsList) {
     const tbody       = document.getElementById('productsBody');
     const resultCount = document.getElementById('resultCount');
     tbody.innerHTML   = '';
-    resultCount.textContent = `${productsList.length} product(s)`;
- 
+    resultCount.textContent = `${productsList.length} product${productsList.length !== 1 ? 's' : ''}`;
+
     productsList.forEach((product, index) => {
-        const isLow      = product.status === 'Low';
-        const isExpanded = expandedRows.has(product.id);
- 
-        const row    = document.createElement('tr');
-        row.className = isLow ? 'low-stock' : '';
+        const hasVariants    = product.has_variants && product.variants && product.variants.length > 0;
+        const hasLowVariant  = hasVariants && product.variants.some(v => isVariantLow(v));
+        const lowVariantCount = hasVariants ? product.variants.filter(v => isVariantLow(v)).length : 0;
+        const isLow          = product.status === 'Low';
+        const isExpanded     = expandedRows.has(product.id);
+
+        const row = document.createElement('tr');
+        row.className = ((!hasVariants && isLow) || hasLowVariant) ? 'low-stock' : '';
         row.id        = `product-${product.id}`;
- 
-        const expandBtn    = product.has_variants
-            ? `<button class="btn-expand" onclick="toggleVariants(${product.id})" id="expand-btn-${product.id}">
+
+        const expandBtn = hasVariants
+            ? `<button class="btn-expand" onclick="toggleVariants(${product.id})" id="expand-btn-${product.id}" title="Show variants">
                 <i class="fas fa-${isExpanded ? 'chevron-up' : 'chevron-down'}"></i>
                </button>`
-            : `<span style="width:24px;display:inline-block;"></span>`;
- 
-        const variantBadge = product.has_variants
-            ? `<span class="has-variants-badge"><i class="fas fa-layer-group"></i> ${product.variants.length}</span>`
+            : `<span style="width:26px;display:inline-block;"></span>`;
+
+        const variantBadge = hasVariants
+            ? `<span class="pill-variants"><i class="fas fa-layer-group"></i> ${product.variants.length} Variant${product.variants.length > 1 ? 's' : ''}</span>
+               ${hasLowVariant ? `<span class="pill-variant-low"><i class="fas fa-triangle-exclamation"></i> ${lowVariantCount} Low</span>` : ''}`
             : '';
- 
-        row.innerHTML = `
-            <td style="color:#94a3b8;font-weight:600;font-size:12px;">${index + 1}</td>
-            <td>
-                <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
-                    ${expandBtn}
-                    <div>
-                        <div style="font-weight:600;color:#1e293b;">${escapeHtml(product.name)}</div>
-                        ${product.category ? `<div style="font-size:11px;color:#94a3b8;">${escapeHtml(product.category)}</div>` : ''}
-                    </div>
-                    ${variantBadge}
-                </div>
-            </td>
-            <td style="font-weight:600;">${formatCurrency(product.selling_price)}</td>
-            <td>
-                <div class="stock-edit-group">
-                    <span class="stock-value ${isLow ? 'low' : ''}" id="stock-display-${product.id}">${product.stock}</span>
-                    <input class="stock-edit-input" type="number" id="stock-edit-${product.id}" value="${product.stock}" min="0" style="display:none;">
-                    <button class="btn btn-sm btn-ghost" id="stock-edit-btn-${product.id}" onclick="showStockEdit(${product.id})" title="Edit stock" style="padding:4px 6px;">
-                        <i class="fas fa-pen" style="font-size:10px;color:#64748b;"></i>
+
+        const productPriceCell = hasVariants
+            ? `<span style="color:var(--text-3);">—</span>`
+            : `<span style="font-weight:700;color:var(--text-1);">${formatCurrency(product.selling_price)}</span>`;
+
+        const productStockCell = hasVariants
+            ? `<span style="color:var(--text-3);">—</span>`
+            : `<div class="stock-edit-group">
+                    <span class="stock-val ${isLow ? 'low' : ''}" id="stock-display-${product.id}">${product.stock}</span>
+                    <input class="stock-edit-input" type="number" id="stock-edit-${product.id}" value="${product.stock}" min="0">
+                    <button class="btn btn-xs btn-ghost" id="stock-edit-btn-${product.id}" onclick="showStockEdit(${product.id})" title="Edit stock">
+                        <i class="fas fa-pen" style="font-size:9px;"></i>
                     </button>
-                    <button class="btn btn-sm btn-success" id="stock-save-btn-${product.id}" onclick="saveStockEdit(${product.id})" title="Save" style="display:none;padding:4px 6px;">
-                        <i class="fas fa-check" style="font-size:10px;"></i>
+                    <button class="btn btn-xs btn-success" id="stock-save-btn-${product.id}" onclick="saveStockEdit(${product.id})" style="display:none;">
+                        <i class="fas fa-check" style="font-size:9px;"></i>
                     </button>
-                    <button class="btn btn-sm btn-ghost" id="stock-cancel-btn-${product.id}" onclick="cancelStockEdit(${product.id})" title="Cancel" style="display:none;padding:4px 6px;">
-                        <i class="fas fa-times" style="font-size:10px;color:#64748b;"></i>
+                    <button class="btn btn-xs btn-ghost" id="stock-cancel-btn-${product.id}" onclick="cancelStockEdit(${product.id})" style="display:none;">
+                        <i class="fas fa-times" style="font-size:9px;"></i>
                     </button>
-                </div>
-            </td>
-            <td>${getStatusBadge(product.status)}</td>
-            <td>
-                <div class="sell-restock-group">
+               </div>
+               <div class="minstock-inline">
+                    <label>Min</label>
+                    <input class="minstock-input" type="number" id="minstock-${product.id}" value="${product.min_stock}" min="0">
+                    <button class="btn btn-xs btn-ghost" onclick="updateMinStock(${product.id})" title="Save">
+                        <i class="fas fa-check" style="color:var(--green);font-size:9px;"></i>
+                    </button>
+               </div>`;
+
+        const productStatusCell = hasVariants
+            ? (hasLowVariant ? `<span class="badge badge-low">Variant Low</span>` : `<span style="color:var(--text-3);">—</span>`)
+            : getStatusBadge(product.status);
+
+        const productActionCell = hasVariants
+            ? `<span style="color:var(--text-3);font-size:12px;">Expand variants</span>`
+            : `<div class="sell-restock-group">
                     <div class="sell-restock-pair">
-                        <input class="qty-input" type="number" id="sell-qty-${product.id}" placeholder="Qty" min="1">
+                        <input class="qty-input" type="number" id="sell-qty-${product.id}" placeholder="Qty to sell" min="1">
                         <button class="btn btn-sm btn-success" onclick="sellProduct(${product.id})">
                             <i class="fas fa-shopping-cart"></i> Sell
                         </button>
                     </div>
                     <div class="sell-restock-pair">
-                        <input class="qty-input" type="number" id="restock-qty-${product.id}" placeholder="Qty" min="1">
+                        <input class="qty-input" type="number" id="restock-qty-${product.id}" placeholder="Qty to add" min="1">
                         <button class="btn btn-sm btn-primary" onclick="restockProduct(${product.id})">
                             <i class="fas fa-plus"></i> Restock
                         </button>
                     </div>
-                </div>
-            </td>
+               </div>`;
+
+        const settingsCell = hasVariants
+            ? `<span style="color:var(--text-3);font-size:11px;">Inside variants</span>`
+            : `<button class="btn btn-sm" style="background:var(--violet-lt);color:var(--violet);border:1px solid var(--violet-mid);"
+                    onclick="openAddVariantModal(${product.id}, '${escapeHtml(product.name)}')" title="Add variant">
+                    <i class="fas fa-layer-group"></i> Add Variant
+               </button>`;
+
+        const deleteCell = hasVariants
+            ? `<span style="color:var(--text-3);">—</span>`
+            : `<button class="btn btn-sm btn-icon" onclick="deleteProduct(${product.id})" title="Delete product">
+                    <i class="fas fa-trash"></i>
+               </button>`;
+
+        row.innerHTML = `
+            <td class="row-index">${index + 1}</td>
             <td>
-                <div class="action-group">
-                    <input class="minstock-input" type="number" id="minstock-${product.id}" value="${product.min_stock}" min="0">
-                    <button class="btn btn-sm btn-ghost" onclick="updateMinStock(${product.id})" title="Update min stock">
-                        <i class="fas fa-check" style="color:#16a34a;"></i>
-                    </button>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    ${expandBtn}
+                    <div>
+                        <div class="product-name-cell">${escapeHtml(product.name)}</div>
+                        ${product.category ? `<div class="product-cat-cell">${escapeHtml(product.category)}</div>` : ''}
+                    </div>
+                    ${variantBadge}
                 </div>
             </td>
-            <td>
-                <div class="action-group">
-                    <button class="btn btn-sm" style="background:#f5f3ff;color:#6366f1;border:1px solid #e0e7ff;"
-                            onclick="openAddVariantModal(${product.id}, '${escapeHtml(product.name)}')" title="Add variant">
-                        <i class="fas fa-layer-group"></i>
-                    </button>
-                    <button class="btn btn-sm btn-icon" onclick="deleteProduct(${product.id})" title="Delete">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
+            <td>${productPriceCell}</td>
+            <td>${productStockCell}</td>
+            <td>${productStatusCell}</td>
+            <td>${productActionCell}</td>
+            <td>${settingsCell}</td>
+            <td>${deleteCell}</td>
         `;
         tbody.appendChild(row);
- 
-        if (product.has_variants) {
-            const variantRow       = document.createElement('tr');
+
+        if (hasVariants) {
+            const variantRow = document.createElement('tr');
             variantRow.className   = 'variants-row';
             variantRow.id          = `variants-${product.id}`;
             variantRow.style.display = isExpanded ? 'table-row' : 'none';
@@ -848,6 +1431,15 @@ function renderProducts(productsList) {
                         <div class="variants-header">
                             <div class="variants-title">
                                 <i class="fas fa-layer-group"></i> Variants (${product.variants.length})
+                            </div>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <button class="btn btn-sm" style="background:var(--violet-lt);color:var(--violet);border:1px solid var(--violet-mid);"
+                                        onclick="openAddVariantModal(${product.id}, '${escapeHtml(product.name)}')">
+                                    <i class="fas fa-plus"></i> Add Variant
+                                </button>
+                                <button class="btn btn-sm btn-icon" onclick="deleteProduct(${product.id})" title="Delete product">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
                         <div class="variants-table-wrap">
@@ -860,57 +1452,58 @@ function renderProducts(productsList) {
         }
     });
 }
- 
-// ===== Render Variants Table (Desktop) — defined ONCE =====
+
+// ===== Render Variants Table (Desktop) =====
 function renderVariantsTable(product) {
     if (!product.variants || product.variants.length === 0) {
-        return '<p style="color:#94a3b8;font-size:12px;padding:6px 0;">No variants yet.</p>';
+        return '<p style="color:var(--text-3);font-size:12px;padding:8px 0;">No variants yet.</p>';
     }
- 
+
     const rows = product.variants.map(v => `
-        <tr class="${v.status === 'Low' ? 'low-stock' : ''}">
+        <tr id="variant-row-${v.id}" class="${isVariantLow(v) ? 'low-stock' : ''}">
+            <td><strong>${escapeHtml(v.variant_value)}</strong></td>
+            <td><span class="tag-type">${v.variant_type}</span></td>
+            <td style="font-family:monospace;font-size:11px;color:var(--text-3);">${v.barcode || '—'}</td>
+            <td style="font-weight:700;">${formatCurrency(v.effective_selling_price || product.selling_price)}</td>
+            <td>
+                <div class="variant-stock-block">
+                    <div class="stock-edit-group">
+                        <span class="stock-val ${isVariantLow(v) ? 'low' : ''}" id="vstock-display-${v.id}">${v.stock}</span>
+                        <input class="stock-edit-input" type="number" id="vstock-edit-${v.id}" value="${v.stock}" min="0" style="width:60px;">
+                        <button class="btn btn-xs btn-ghost" id="vstock-edit-btn-${v.id}" onclick="showVariantStockEdit(${v.id})" title="Edit stock">
+                            <i class="fas fa-pen" style="font-size:9px;"></i>
+                        </button>
+                        <button class="btn btn-xs btn-success" id="vstock-save-btn-${v.id}" onclick="saveVariantStockEdit(${v.id})" style="display:none;">
+                            <i class="fas fa-check" style="font-size:9px;"></i>
+                        </button>
+                        <button class="btn btn-xs btn-ghost" id="vstock-cancel-btn-${v.id}" onclick="cancelVariantStockEdit(${v.id})" style="display:none;">
+                            <i class="fas fa-times" style="font-size:9px;"></i>
+                        </button>
+                    </div>
+                    <div class="minstock-inline">
+                        <label>Min</label>
+                        <input class="minstock-input" type="number" id="v-minstock-${v.id}" value="${v.min_stock}" min="0">
+                        <button class="btn btn-xs btn-ghost" onclick="updateVariantMinStock(${v.id})" title="Save">
+                            <i class="fas fa-check" style="color:var(--green);font-size:9px;"></i>
+                        </button>
+                    </div>
+                </div>
+            </td>
+            <td id="vstatus-${v.id}">${getStatusBadge(isVariantLow(v) ? 'Low' : 'OK')}</td>
             <td>
                 <div class="sell-restock-group">
                     <div class="sell-restock-pair">
-                        <input class="qty-input" type="number" id="sell-variant-${v.id}" placeholder="Qty" min="1">
+                        <input class="qty-input" type="number" id="sell-variant-${v.id}" placeholder="Qty to sell" min="1">
                         <button class="btn btn-sm btn-success" onclick="sellVariant(${v.id}, ${product.id})">
                             <i class="fas fa-shopping-cart"></i> Sell
                         </button>
                     </div>
                     <div class="sell-restock-pair">
-                        <input class="qty-input" type="number" id="restock-variant-${v.id}" placeholder="Qty" min="1">
+                        <input class="qty-input" type="number" id="restock-variant-${v.id}" placeholder="Qty to add" min="1">
                         <button class="btn btn-sm btn-primary" onclick="restockVariant(${v.id}, ${product.id})">
                             <i class="fas fa-plus"></i> Restock
                         </button>
                     </div>
-                </div>
-            </td>
-            <td><strong>${escapeHtml(v.variant_value)}</strong></td>
-            <td><span style="background:#e0e7ff;color:#4338ca;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;text-transform:capitalize;">${v.variant_type}</span></td>
-            <td style="font-family:monospace;font-size:11px;color:#94a3b8;">${v.barcode || '—'}</td>
-            <td style="font-weight:600;">${formatCurrency(v.effective_selling_price || product.selling_price)}</td>
-            <td>
-                <div class="stock-edit-group">
-                    <span class="stock-value ${v.status === 'Low' ? 'low' : ''}" id="vstock-display-${v.id}">${v.stock}</span>
-                    <input class="stock-edit-input" type="number" id="vstock-edit-${v.id}" value="${v.stock}" min="0" style="display:none;width:50px;font-size:11px;">
-                    <button class="btn btn-sm btn-ghost" id="vstock-edit-btn-${v.id}" onclick="showVariantStockEdit(${v.id})" title="Edit stock" style="padding:3px 5px;">
-                        <i class="fas fa-pen" style="font-size:9px;color:#64748b;"></i>
-                    </button>
-                    <button class="btn btn-sm btn-success" id="vstock-save-btn-${v.id}" onclick="saveVariantStockEdit(${v.id})" title="Save" style="display:none;padding:3px 5px;">
-                        <i class="fas fa-check" style="font-size:9px;"></i>
-                    </button>
-                    <button class="btn btn-sm btn-ghost" id="vstock-cancel-btn-${v.id}" onclick="cancelVariantStockEdit(${v.id})" title="Cancel" style="display:none;padding:3px 5px;">
-                        <i class="fas fa-times" style="font-size:9px;color:#64748b;"></i>
-                    </button>
-                </div>
-            </td>
-            <td>${getStatusBadge(v.status)}</td>
-            <td>
-                <div class="action-group">
-                    <input class="minstock-input" type="number" id="v-minstock-${v.id}" value="${v.min_stock}" min="0">
-                    <button class="btn btn-sm btn-ghost" onclick="updateVariantMinStock(${v.id})" title="Update min stock">
-                        <i class="fas fa-check" style="color:#16a34a;"></i>
-                    </button>
                 </div>
             </td>
             <td>
@@ -920,72 +1513,82 @@ function renderVariantsTable(product) {
             </td>
         </tr>
     `).join('');
- 
+
     return `
         <table class="variants-table">
             <thead>
                 <tr>
-                    <th>Sell / Restock</th>
                     <th>Value</th><th>Type</th><th>Barcode</th>
-                    <th>Price</th><th>Stock</th><th>Status</th>
-                    <th>Min Stock</th><th></th>
+                    <th>Price</th><th>Stock / Min</th><th>Status</th>
+                    <th>Sell / Restock</th><th></th>
                 </tr>
             </thead>
             <tbody>${rows}</tbody>
         </table>
     `;
 }
- 
+
 // ===== Render Mobile Cards =====
 function renderMobileProducts(productsList) {
-    const container  = document.getElementById('mobileProducts');
+    const container = document.getElementById('mobileProducts');
     container.innerHTML = '';
     if (productsList.length === 0) return;
- 
+
     productsList.forEach(product => {
+        const hasVariants   = product.has_variants && product.variants && product.variants.length > 0;
+        const hasLowVariant = hasVariants && product.variants.some(v => isVariantLow(v));
         const isLow = product.status === 'Low';
         const card  = document.createElement('div');
-        card.className = `product-card ${isLow ? 'low-stock' : ''}`;
+        card.className = `product-card ${((!hasVariants && isLow) || hasLowVariant) ? 'low-stock' : ''}`;
         card.id        = `mobile-product-${product.id}`;
- 
-        const variantsHtml = product.has_variants ? `
+
+        const variantsHtml = hasVariants ? `
             <div class="card-variant-section">
                 <div class="card-variant-title">
                     <i class="fas fa-layer-group"></i> Variants (${product.variants.length})
-                    <button class="btn btn-sm" style="background:#e0e7ff;color:#4338ca;margin-left:auto;"
+                    <button class="btn btn-sm" style="background:var(--violet-lt);color:var(--violet);border:1px solid var(--violet-mid);margin-left:auto;"
                             onclick="openAddVariantModal(${product.id}, '${escapeHtml(product.name)}')">
                         <i class="fas fa-plus"></i> Add
                     </button>
                 </div>
                 ${product.variants.map(v => `
-                    <div class="variant-card">
+                    <div class="variant-card ${isVariantLow(v) ? 'low-stock' : ''}" id="mobile-variant-${v.id}">
                         <div class="variant-card-header">
                             <div>
                                 <span class="variant-card-name">${escapeHtml(v.variant_value)}</span>
                                 <span class="variant-card-type">${v.variant_type}</span>
                             </div>
                             <div style="display:flex;align-items:center;gap:6px;">
-                                ${getStatusBadge(v.status)}
-                                <button class="btn btn-sm btn-icon" onclick="deleteVariant(${v.id}, ${product.id})" style="padding:4px 6px;">
+                                <span id="m-vstatus-${v.id}">${getStatusBadge(isVariantLow(v) ? 'Low' : 'OK')}</span>
+                                <button class="btn btn-sm btn-icon" onclick="deleteVariant(${v.id}, ${product.id})" style="padding:5px 7px;">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
                         </div>
                         <div class="variant-card-stats">
                             <div>
-                                <label style="font-size:10px;color:#94a3b8;font-weight:600;text-transform:uppercase;">Stock</label>
-                                <span id="m-vstock-${v.id}" style="font-size:14px;font-weight:700;color:${v.status === 'Low' ? '#dc2626' : '#1e293b'};">${v.stock}</span>
+                                <label style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:3px;">Stock</label>
+                                <span id="m-vstock-${v.id}" style="font-size:15px;font-weight:700;color:${isVariantLow(v) ? 'var(--red)' : 'var(--text-1)'};">${v.stock}</span>
                             </div>
                             <div>
-                                <label style="font-size:10px;color:#94a3b8;font-weight:600;text-transform:uppercase;">Price</label>
-                                <span style="font-size:13px;font-weight:700;color:#1e293b;">${formatCurrency(v.effective_selling_price || product.selling_price)}</span>
+                                <label style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:3px;">Price</label>
+                                <span style="font-size:14px;font-weight:700;color:var(--text-1);">${formatCurrency(v.effective_selling_price || product.selling_price)}</span>
+                            </div>
+                            <div class="mobile-minstock-box">
+                                <label>Min Stock</label>
+                                <div class="mobile-minstock-controls">
+                                    <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-v-minstock-${v.id}" value="${v.min_stock}" min="0">
+                                    <button class="btn btn-sm btn-ghost" onclick="updateVariantMinStockMobile(${v.id})">
+                                        <i class="fas fa-check" style="color:var(--green);"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div style="display:flex;flex-direction:column;gap:6px;">
                             <div class="action-row">
                                 <label>Sell</label>
                                 <div class="action-row-inputs">
-                                    <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-sell-variant-${v.id}" placeholder="Qty" min="1">
+                                    <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-sell-variant-${v.id}" placeholder="Enter qty" min="1">
                                     <button class="btn btn-sm btn-success" onclick="sellVariant(${v.id}, ${product.id})">
                                         <i class="fas fa-shopping-cart"></i>
                                     </button>
@@ -994,18 +1597,9 @@ function renderMobileProducts(productsList) {
                             <div class="action-row">
                                 <label>Restock</label>
                                 <div class="action-row-inputs">
-                                    <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-restock-variant-${v.id}" placeholder="Qty" min="1">
+                                    <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-restock-variant-${v.id}" placeholder="Enter qty" min="1">
                                     <button class="btn btn-sm btn-primary" onclick="restockVariant(${v.id}, ${product.id})">
                                         <i class="fas fa-plus"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="action-row">
-                                <label>Min Stock</label>
-                                <div class="action-row-inputs">
-                                    <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-v-minstock-${v.id}" value="${v.min_stock}" min="0">
-                                    <button class="btn btn-sm btn-ghost" onclick="updateVariantMinStockMobile(${v.id})">
-                                        <i class="fas fa-check" style="color:#16a34a;"></i>
                                     </button>
                                 </div>
                             </div>
@@ -1014,14 +1608,14 @@ function renderMobileProducts(productsList) {
                 `).join('')}
             </div>
         ` : `
-            <div style="margin-top:8px;">
-                <button class="btn btn-sm" style="background:#f5f3ff;color:#6366f1;border:1px solid #e0e7ff;width:100%;"
+            <div style="margin-top:10px;">
+                <button class="btn btn-sm" style="background:var(--violet-lt);color:var(--violet);border:1px solid var(--violet-mid);width:100%;"
                         onclick="openAddVariantModal(${product.id}, '${escapeHtml(product.name)}')">
                     <i class="fas fa-layer-group"></i> Add Variant
                 </button>
             </div>
         `;
- 
+
         card.innerHTML = `
             <div class="product-card-header">
                 <div>
@@ -1029,16 +1623,17 @@ function renderMobileProducts(productsList) {
                     ${product.category ? `<div class="product-card-category">${escapeHtml(product.category)}</div>` : ''}
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;">
-                    ${getStatusBadge(product.status)}
-                    <button class="btn btn-sm btn-icon" onclick="deleteProduct(${product.id})" style="padding:4px 6px;">
+                    ${hasVariants ? `<span class="pill-variants"><i class="fas fa-layer-group"></i> ${product.variants.length}</span>` : getStatusBadge(product.status)}
+                    <button class="btn btn-sm btn-icon" onclick="deleteProduct(${product.id})" style="padding:5px 7px;">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
+            ${!hasVariants ? `
             <div class="product-card-stats">
                 <div class="product-card-stat">
                     <label>Stock</label>
-                    <span id="m-stock-${product.id}" style="color:${isLow ? '#dc2626' : '#1e293b'};">${product.stock}</span>
+                    <span id="m-stock-${product.id}" style="color:${isLow ? 'var(--red)' : 'var(--text-1)'};">${product.stock}</span>
                 </div>
                 <div class="product-card-stat">
                     <label>Price</label>
@@ -1048,12 +1643,21 @@ function renderMobileProducts(productsList) {
                     <label>Barcode</label>
                     <span style="font-size:11px;">${product.barcode || '—'}</span>
                 </div>
+                <div class="mobile-minstock-box">
+                    <label>Min Stock Alert</label>
+                    <div class="mobile-minstock-controls">
+                        <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-minstock-${product.id}" value="${product.min_stock}" min="0">
+                        <button class="btn btn-sm btn-ghost" onclick="updateMinStockMobile(${product.id})">
+                            <i class="fas fa-check" style="color:var(--green);"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="product-card-actions">
                 <div class="action-row">
                     <label>Sell</label>
                     <div class="action-row-inputs">
-                        <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-sell-qty-${product.id}" placeholder="Qty" min="1">
+                        <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-sell-qty-${product.id}" placeholder="Enter qty" min="1">
                         <button class="btn btn-sm btn-success" onclick="sellProductMobile(${product.id})">
                             <i class="fas fa-shopping-cart"></i> Sell
                         </button>
@@ -1062,29 +1666,19 @@ function renderMobileProducts(productsList) {
                 <div class="action-row">
                     <label>Restock</label>
                     <div class="action-row-inputs">
-                        <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-restock-qty-${product.id}" placeholder="Qty" min="1">
+                        <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-restock-qty-${product.id}" placeholder="Enter qty" min="1">
                         <button class="btn btn-sm btn-primary" onclick="restockProductMobile(${product.id})">
                             <i class="fas fa-plus"></i> Restock
                         </button>
                     </div>
                 </div>
-                <div class="card-divider"></div>
-                <div class="action-row">
-                    <label>Min Stock</label>
-                    <div class="action-row-inputs">
-                        <input class="qty-input-mobile" type="number" inputmode="numeric" id="m-minstock-${product.id}" value="${product.min_stock}" min="0">
-                        <button class="btn btn-sm btn-ghost" onclick="updateMinStockMobile(${product.id})">
-                            <i class="fas fa-check" style="color:#16a34a;"></i> Update
-                        </button>
-                    </div>
-                </div>
-            </div>
+            </div>` : ''}
             ${variantsHtml}
         `;
         container.appendChild(card);
     });
 }
- 
+
 // ===== Toggle Variants =====
 function toggleVariants(productId) {
     const variantRow = document.getElementById(`variants-${productId}`);
@@ -1100,77 +1694,95 @@ function toggleVariants(productId) {
         icon.className = 'fas fa-chevron-up';
     }
 }
- 
+
+function isVariantLow(variant) {
+    return parseInt(variant?.stock || 0, 10) < parseInt(variant?.min_stock || 0, 10);
+}
+
+function refreshParentVariantAlert(productId) {
+    const product = products.find(p => p.id === productId || String(p.id) === String(productId));
+    if (!product || !(product.variants || []).length) return;
+    const lowCount = product.variants.filter(v => isVariantLow(v)).length;
+    const row  = document.getElementById(`product-${product.id}`);
+    const card = document.getElementById(`mobile-product-${product.id}`);
+    if (row) {
+        row.classList.toggle('low-stock', lowCount > 0);
+        const statusTd = row.querySelectorAll('td')[4];
+        if (statusTd) statusTd.innerHTML = lowCount > 0 ? '<span class="badge badge-low">Variant Low</span>' : '<span style="color:var(--text-3);">—</span>';
+    }
+    if (card) card.classList.toggle('low-stock', lowCount > 0);
+}
+
 // ===== Summary Cards =====
 function updateSummaryCards(productsList) {
+    const lowProductCount = productsList.filter(p => !(p.has_variants && p.variants && p.variants.length > 0) && p.status === 'Low').length;
+    const lowVariantCount = productsList.reduce((c, p) => c + ((p.variants || []).filter(v => isVariantLow(v)).length), 0);
     document.getElementById('totalProducts').textContent = formatNumber(productsList.length);
     document.getElementById('totalUnits').textContent    = formatNumber(productsList.reduce((s, p) => s + p.stock, 0));
     document.getElementById('totalValue').textContent    = formatCurrency(productsList.reduce((s, p) => s + p.stock * p.cost_price, 0));
-    document.getElementById('lowStockCount').textContent = productsList.filter(p => p.status === 'Low').length;
+    document.getElementById('lowStockCount').textContent = formatNumber(lowProductCount + lowVariantCount);
 }
- 
-// Re-compute summary from cached `products` array (after optimistic updates)
-function refreshSummaryCards() {
-    updateSummaryCards(products);
-}
- 
-// ===== Optimistic DOM update for product stock =====
+
+function refreshSummaryCards() { updateSummaryCards(products); }
+
+// ===== Optimistic DOM — product stock =====
 function _applyProductStockDOM(productId, newStock, minStock) {
     const isLow = newStock <= minStock;
- 
-    // Desktop: stock display
     const display = document.getElementById(`stock-display-${productId}`);
-    if (display) { display.textContent = newStock; display.className = `stock-value ${isLow ? 'low' : ''}`; }
- 
-    // Desktop: row highlight
+    if (display) { display.textContent = newStock; display.className = `stock-val ${isLow ? 'low' : ''}`; }
     const row = document.getElementById(`product-${productId}`);
-    if (row) row.className = isLow ? 'low-stock' : '';
- 
-    // Desktop: status badge cell (4th td, index 4)
     if (row) {
+        row.className = isLow ? 'low-stock' : '';
         const statusTd = row.querySelectorAll('td')[4];
         if (statusTd) statusTd.innerHTML = getStatusBadge(isLow ? 'Low' : 'OK');
     }
- 
-    // Mobile: stock span
     const mSpan = document.getElementById(`m-stock-${productId}`);
-    if (mSpan) { mSpan.textContent = newStock; mSpan.style.color = isLow ? '#dc2626' : '#1e293b'; }
- 
-    // Mobile: card border
+    if (mSpan) { mSpan.textContent = newStock; mSpan.style.color = isLow ? 'var(--red)' : 'var(--text-1)'; }
     const mCard = document.getElementById(`mobile-product-${productId}`);
     if (mCard) mCard.classList.toggle('low-stock', isLow);
 }
- 
-// ===== Optimistic DOM update for variant stock =====
+
+// ===== Optimistic DOM — variant stock =====
 function _applyVariantStockDOM(variantId, newStock, minStock) {
-    const isLow = newStock <= minStock;
- 
-    // Desktop
+    const isLow = newStock < minStock;
+    let parentProductId = null;
+    for (const p of products) {
+        const v = (p.variants || []).find(v => v.id === variantId || String(v.id) === String(variantId));
+        if (v) { v.stock = newStock; v.min_stock = minStock; v.status = isLow ? 'Low' : 'OK'; parentProductId = p.id; break; }
+    }
     const display = document.getElementById(`vstock-display-${variantId}`);
-    if (display) { display.textContent = newStock; display.className = `stock-value ${isLow ? 'low' : ''}`; }
- 
-    // Mobile
+    if (display) { display.textContent = newStock; display.className = `stock-val ${isLow ? 'low' : ''}`; }
+    const variantRow = document.getElementById(`variant-row-${variantId}`);
+    if (variantRow) variantRow.classList.toggle('low-stock', isLow);
+    const statusCell = document.getElementById(`vstatus-${variantId}`);
+    if (statusCell) statusCell.innerHTML = getStatusBadge(isLow ? 'Low' : 'OK');
     const mSpan = document.getElementById(`m-vstock-${variantId}`);
-    if (mSpan) { mSpan.textContent = newStock; mSpan.style.color = isLow ? '#dc2626' : '#1e293b'; }
+    if (mSpan) { mSpan.textContent = newStock; mSpan.style.color = isLow ? 'var(--red)' : 'var(--text-1)'; }
+    const mobileVariant = document.getElementById(`mobile-variant-${variantId}`);
+    if (mobileVariant) mobileVariant.classList.toggle('low-stock', isLow);
+    const mStatus = document.getElementById(`m-vstatus-${variantId}`);
+    if (mStatus) mStatus.innerHTML = getStatusBadge(isLow ? 'Low' : 'OK');
+    if (parentProductId) refreshParentVariantAlert(parentProductId);
+    refreshSummaryCards();
 }
- 
+
 // ===== Add Product =====
 function toggleAddForm() {
-    const form   = document.getElementById('addProductForm');
+    const form = document.getElementById('addProductForm');
     const hidden = form.style.display === 'none';
     form.style.display = hidden ? 'block' : 'none';
     if (hidden) form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
- 
+
 async function handleAddProduct(event) {
     event.preventDefault();
-    const form     = document.getElementById('productForm');
+    const form = document.getElementById('productForm');
     const formData = new FormData(form);
-    const data     = {
+    const data = {
         name:          formData.get('name'),
         category:      formData.get('category') || '',
         barcode:       formData.get('barcode')   || '',
-        stock:         parseInt(formData.get('stock'))    || 0,
+        stock:         parseInt(formData.get('stock'))     || 0,
         min_stock:     parseInt(formData.get('min_stock')) || 10,
         cost_price:    parseFloat(formData.get('cost_price')),
         selling_price: parseFloat(formData.get('selling_price')),
@@ -1180,46 +1792,46 @@ async function handleAddProduct(event) {
         showToast('Product added!');
         form.reset();
         toggleAddForm();
-        loadProducts();           // full reload needed for new product
+        loadProducts();
         loadCategoriesForDatalist();
     } catch (err) {
         showToast('Failed to add product: ' + err.message, 'error');
     }
 }
- 
+
 async function loadCategoriesForDatalist() {
     try {
-        const cats    = await API.getCategories();
+        const cats = await API.getCategories();
         const datalist = document.getElementById('categoryList');
         datalist.innerHTML = '';
         cats.forEach(cat => {
-            const opt  = document.createElement('option');
-            opt.value  = cat;
+            const opt = document.createElement('option');
+            opt.value = cat;
             datalist.appendChild(opt);
         });
     } catch (err) { console.error('Failed to load categories:', err); }
 }
- 
+
 // ===== Variant Modal =====
 function openAddVariantModal(productId, productName) {
     currentVariantProductId = productId;
     document.getElementById('variantProductName').textContent = productName;
-    document.getElementById('variantType').value        = 'weight';
-    document.getElementById('variantValue').value       = '';
-    document.getElementById('variantStock').value       = '0';
-    document.getElementById('variantMinStock').value    = '5';
-    document.getElementById('variantCostPrice').value   = '';
+    document.getElementById('variantType').value         = 'weight';
+    document.getElementById('variantValue').value        = '';
+    document.getElementById('variantStock').value        = '0';
+    document.getElementById('variantMinStock').value     = '5';
+    document.getElementById('variantCostPrice').value    = '';
     document.getElementById('variantSellingPrice').value = '';
-    document.getElementById('variantBarcode').value     = '';
+    document.getElementById('variantBarcode').value      = '';
     document.getElementById('addVariantModal').classList.add('show');
     setTimeout(() => document.getElementById('variantValue').focus(), 300);
 }
- 
+
 function closeVariantModal() {
     document.getElementById('addVariantModal').classList.remove('show');
     currentVariantProductId = null;
 }
- 
+
 async function submitAddVariant() {
     if (!currentVariantProductId) return;
     const variantValue = document.getElementById('variantValue').value.trim();
@@ -1242,37 +1854,37 @@ async function submitAddVariant() {
         showToast('Variant added!');
         closeVariantModal();
         expandedRows.add(pid);
-        loadProducts();   // full reload needed — new variant changes structure
+        loadProducts();
     } catch (err) {
         showToast('Failed to add variant: ' + err.message, 'error');
     }
 }
- 
-// ===== Inline Stock Editing (Desktop – Products) =====
+
+// ===== Inline Stock Edit — Products =====
 var __stockEditCache = {};
- 
+
 function showStockEdit(productId) {
-    const display    = document.getElementById(`stock-display-${productId}`);
-    const input      = document.getElementById(`stock-edit-${productId}`);
-    const editBtn    = document.getElementById(`stock-edit-btn-${productId}`);
-    const saveBtn    = document.getElementById(`stock-save-btn-${productId}`);
-    const cancelBtn  = document.getElementById(`stock-cancel-btn-${productId}`);
+    const display = document.getElementById(`stock-display-${productId}`);
+    const input   = document.getElementById(`stock-edit-${productId}`);
+    const editBtn = document.getElementById(`stock-edit-btn-${productId}`);
+    const saveBtn = document.getElementById(`stock-save-btn-${productId}`);
+    const cancelBtn = document.getElementById(`stock-cancel-btn-${productId}`);
     __stockEditCache[productId] = display.textContent;
-    display.style.display  = 'none';
-    input.style.display    = 'inline-block';
-    input.value            = display.textContent;
+    display.style.display = 'none';
+    input.style.display   = 'inline-block';
+    input.value = display.textContent;
     input.focus(); input.select();
     editBtn.style.display  = 'none';
     saveBtn.style.display  = 'inline-flex';
     cancelBtn.style.display = 'inline-flex';
 }
- 
+
 function cancelStockEdit(productId) {
-    const display    = document.getElementById(`stock-display-${productId}`);
-    const input      = document.getElementById(`stock-edit-${productId}`);
-    const editBtn    = document.getElementById(`stock-edit-btn-${productId}`);
-    const saveBtn    = document.getElementById(`stock-save-btn-${productId}`);
-    const cancelBtn  = document.getElementById(`stock-cancel-btn-${productId}`);
+    const display = document.getElementById(`stock-display-${productId}`);
+    const input   = document.getElementById(`stock-edit-${productId}`);
+    const editBtn = document.getElementById(`stock-edit-btn-${productId}`);
+    const saveBtn = document.getElementById(`stock-save-btn-${productId}`);
+    const cancelBtn = document.getElementById(`stock-cancel-btn-${productId}`);
     display.textContent    = __stockEditCache[productId] || display.textContent;
     display.style.display  = 'inline';
     input.style.display    = 'none';
@@ -1280,34 +1892,34 @@ function cancelStockEdit(productId) {
     saveBtn.style.display  = 'none';
     cancelBtn.style.display = 'none';
 }
- 
+
 async function saveStockEdit(productId) {
     const input    = document.getElementById(`stock-edit-${productId}`);
     const newStock = parseInt(input.value);
     if (isNaN(newStock) || newStock < 0) { showToast('Invalid stock value', 'error'); return; }
-    const product  = products.find(p => p.id === productId);
+    const product = products.find(p => p.id === productId);
     try {
         await API.updateProductStock(productId, newStock);
-        if (product) { product.stock = newStock; }
+        if (product) product.stock = newStock;
         _applyProductStockDOM(productId, newStock, product ? product.min_stock : 0);
         refreshSummaryCards();
         cancelStockEdit(productId);
         showToast('Stock updated!');
     } catch (err) { showToast('Failed to update stock: ' + err.message, 'error'); }
 }
- 
-// ===== Product Actions – Desktop (OPTIMISTIC — no full reload) =====
+
+// ===== Product Actions — Desktop =====
 async function sellProduct(productId) {
     if (_locked()) return;
     const input    = document.getElementById(`sell-qty-${productId}`);
     const quantity = parseInt(input.value);
     if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
-    const product  = products.find(p => p.id === productId);
+    const product = products.find(p => p.id === productId);
     if (product && product.stock < quantity) { showToast(`Insufficient stock. Available: ${product.stock}`, 'error'); return; }
     _lock();
     try {
         await API.sellProduct(productId, quantity);
-        if (product) { product.stock -= quantity; }
+        if (product) product.stock -= quantity;
         _applyProductStockDOM(productId, product ? product.stock : 0, product ? product.min_stock : 0);
         refreshSummaryCards();
         showToast('Sale recorded!');
@@ -1315,17 +1927,17 @@ async function sellProduct(productId) {
     } catch (err) { showToast('Failed: ' + err.message, 'error'); }
     finally { _unlock(); }
 }
- 
+
 async function restockProduct(productId) {
     if (_locked()) return;
     const input    = document.getElementById(`restock-qty-${productId}`);
     const quantity = parseInt(input.value);
     if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
-    const product  = products.find(p => p.id === productId);
+    const product = products.find(p => p.id === productId);
     _lock();
     try {
         await API.restockProduct(productId, quantity);
-        if (product) { product.stock += quantity; }
+        if (product) product.stock += quantity;
         _applyProductStockDOM(productId, product ? product.stock : 0, product ? product.min_stock : 0);
         refreshSummaryCards();
         showToast('Restocked!');
@@ -1333,7 +1945,7 @@ async function restockProduct(productId) {
     } catch (err) { showToast('Failed: ' + err.message, 'error'); }
     finally { _unlock(); }
 }
- 
+
 async function updateMinStock(productId) {
     const input = document.getElementById(`minstock-${productId}`);
     const val   = parseInt(input.value);
@@ -1341,36 +1953,35 @@ async function updateMinStock(productId) {
     const product = products.find(p => p.id === productId);
     try {
         await API.updateProductMinStock(productId, val);
-        if (product) { product.min_stock = val; }
-        // Re-evaluate low status with new threshold
+        if (product) product.min_stock = val;
         if (product) _applyProductStockDOM(productId, product.stock, val);
         refreshSummaryCards();
         showToast('Min stock updated!');
     } catch (err) { showToast('Failed: ' + err.message, 'error'); }
 }
- 
+
 async function deleteProduct(productId) {
     if (!confirm('Delete this product and all its variants?')) return;
     try {
         await API.deleteProduct(productId);
         showToast('Product deleted!');
-        loadProducts();   // full reload — product count changes
+        loadProducts();
     } catch (err) { showToast('Failed: ' + err.message, 'error'); }
 }
- 
-// ===== Product Actions – Mobile (OPTIMISTIC) =====
+
+// ===== Product Actions — Mobile =====
 async function sellProductMobile(productId) {
     if (_locked()) return;
     const input    = document.getElementById(`m-sell-qty-${productId}`);
     if (!input) { showToast('Input not found', 'error'); return; }
     const quantity = parseInt(input.value, 10);
     if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
-    const product  = products.find(p => p.id === productId);
+    const product = products.find(p => p.id === productId);
     if (product && product.stock < quantity) { showToast(`Insufficient stock. Available: ${product.stock}`, 'error'); return; }
     _lock();
     try {
         await API.sellProduct(productId, quantity);
-        if (product) { product.stock -= quantity; }
+        if (product) product.stock -= quantity;
         _applyProductStockDOM(productId, product ? product.stock : 0, product ? product.min_stock : 0);
         refreshSummaryCards();
         showToast('Sale recorded!');
@@ -1378,18 +1989,18 @@ async function sellProductMobile(productId) {
     } catch (err) { showToast('Failed: ' + err.message, 'error'); }
     finally { _unlock(); }
 }
- 
+
 async function restockProductMobile(productId) {
     if (_locked()) return;
     const input    = document.getElementById(`m-restock-qty-${productId}`);
     if (!input) { showToast('Input not found', 'error'); return; }
     const quantity = parseInt(input.value, 10);
     if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
-    const product  = products.find(p => p.id === productId);
+    const product = products.find(p => p.id === productId);
     _lock();
     try {
         await API.restockProduct(productId, quantity);
-        if (product) { product.stock += quantity; }
+        if (product) product.stock += quantity;
         _applyProductStockDOM(productId, product ? product.stock : 0, product ? product.min_stock : 0);
         refreshSummaryCards();
         showToast('Restocked!');
@@ -1397,45 +2008,45 @@ async function restockProductMobile(productId) {
     } catch (err) { showToast('Failed: ' + err.message, 'error'); }
     finally { _unlock(); }
 }
- 
+
 async function updateMinStockMobile(productId) {
-    const input   = document.getElementById(`m-minstock-${productId}`);
-    const val     = parseInt(input.value);
+    const input = document.getElementById(`m-minstock-${productId}`);
+    const val   = parseInt(input.value);
     if (isNaN(val) || val < 0) { showToast('Invalid value', 'error'); return; }
     const product = products.find(p => p.id === productId);
     try {
         await API.updateProductMinStock(productId, val);
-        if (product) { product.min_stock = val; }
+        if (product) product.min_stock = val;
         if (product) _applyProductStockDOM(productId, product.stock, val);
         refreshSummaryCards();
         showToast('Min stock updated!');
     } catch (err) { showToast('Failed: ' + err.message, 'error'); }
 }
- 
-// ===== Inline Stock Editing (Variants – Desktop) =====
+
+// ===== Inline Stock Edit — Variants =====
 var __variantEditCache = {};
- 
+
 function showVariantStockEdit(variantId) {
-    const display   = document.getElementById(`vstock-display-${variantId}`);
-    const input     = document.getElementById(`vstock-edit-${variantId}`);
-    const editBtn   = document.getElementById(`vstock-edit-btn-${variantId}`);
-    const saveBtn   = document.getElementById(`vstock-save-btn-${variantId}`);
+    const display = document.getElementById(`vstock-display-${variantId}`);
+    const input   = document.getElementById(`vstock-edit-${variantId}`);
+    const editBtn = document.getElementById(`vstock-edit-btn-${variantId}`);
+    const saveBtn = document.getElementById(`vstock-save-btn-${variantId}`);
     const cancelBtn = document.getElementById(`vstock-cancel-btn-${variantId}`);
     __variantEditCache[variantId] = display.textContent;
-    display.style.display   = 'none';
-    input.style.display     = 'inline-block';
-    input.value             = display.textContent;
+    display.style.display = 'none';
+    input.style.display   = 'inline-block';
+    input.value = display.textContent;
     input.focus(); input.select();
     editBtn.style.display   = 'none';
     saveBtn.style.display   = 'inline-flex';
     cancelBtn.style.display = 'inline-flex';
 }
- 
+
 function cancelVariantStockEdit(variantId) {
-    const display   = document.getElementById(`vstock-display-${variantId}`);
-    const input     = document.getElementById(`vstock-edit-${variantId}`);
-    const editBtn   = document.getElementById(`vstock-edit-btn-${variantId}`);
-    const saveBtn   = document.getElementById(`vstock-save-btn-${variantId}`);
+    const display = document.getElementById(`vstock-display-${variantId}`);
+    const input   = document.getElementById(`vstock-edit-${variantId}`);
+    const editBtn = document.getElementById(`vstock-edit-btn-${variantId}`);
+    const saveBtn = document.getElementById(`vstock-save-btn-${variantId}`);
     const cancelBtn = document.getElementById(`vstock-cancel-btn-${variantId}`);
     display.textContent     = __variantEditCache[variantId] || display.textContent;
     display.style.display   = 'inline';
@@ -1444,12 +2055,11 @@ function cancelVariantStockEdit(variantId) {
     saveBtn.style.display   = 'none';
     cancelBtn.style.display = 'none';
 }
- 
+
 async function saveVariantStockEdit(variantId) {
     const input    = document.getElementById(`vstock-edit-${variantId}`);
     const newStock = parseInt(input.value);
     if (isNaN(newStock) || newStock < 0) { showToast('Invalid stock value', 'error'); return; }
-    // find the variant in the products cache
     let foundVariant = null;
     for (const p of products) {
         const v = (p.variants || []).find(v => v.id === variantId);
@@ -1457,34 +2067,31 @@ async function saveVariantStockEdit(variantId) {
     }
     try {
         await API.updateVariantStock(variantId, newStock);
-        if (foundVariant) { foundVariant.stock = newStock; }
+        if (foundVariant) foundVariant.stock = newStock;
         _applyVariantStockDOM(variantId, newStock, foundVariant ? foundVariant.min_stock : 0);
         cancelVariantStockEdit(variantId);
         showToast('Variant stock updated!');
     } catch (err) { showToast('Failed to update variant stock: ' + err.message, 'error'); }
 }
- 
-// ===== Variant Actions (OPTIMISTIC for sell/restock) =====
+
+// ===== Variant Actions =====
 async function sellVariant(variantId, productId) {
     if (_locked()) return;
     const mobileInput  = document.getElementById(`m-sell-variant-${variantId}`);
     const desktopInput = document.getElementById(`sell-variant-${variantId}`);
-    const input        = (mobileInput && mobileInput.value) ? mobileInput : desktopInput;
-    const quantity     = parseInt(input ? input.value : 0, 10);
+    const input = (mobileInput && mobileInput.value) ? mobileInput : desktopInput;
+    const quantity = parseInt(input ? input.value : 0, 10);
     if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
- 
     let foundVariant = null;
     for (const p of products) {
         const v = (p.variants || []).find(v => v.id === variantId);
         if (v) { foundVariant = v; break; }
     }
-    if (foundVariant && foundVariant.stock < quantity) {
-        showToast(`Insufficient stock. Available: ${foundVariant.stock}`, 'error'); return;
-    }
+    if (foundVariant && foundVariant.stock < quantity) { showToast(`Insufficient stock. Available: ${foundVariant.stock}`, 'error'); return; }
     _lock();
     try {
         await API.sellVariant(variantId, quantity);
-        if (foundVariant) { foundVariant.stock -= quantity; }
+        if (foundVariant) foundVariant.stock -= quantity;
         _applyVariantStockDOM(variantId, foundVariant ? foundVariant.stock : 0, foundVariant ? foundVariant.min_stock : 0);
         showToast('Variant sale recorded!');
         if (input) input.value = '';
@@ -1492,15 +2099,14 @@ async function sellVariant(variantId, productId) {
     } catch (err) { showToast('Failed: ' + err.message, 'error'); }
     finally { _unlock(); }
 }
- 
+
 async function restockVariant(variantId, productId) {
     if (_locked()) return;
     const mobileInput  = document.getElementById(`m-restock-variant-${variantId}`);
     const desktopInput = document.getElementById(`restock-variant-${variantId}`);
-    const input        = (mobileInput && mobileInput.value) ? mobileInput : desktopInput;
-    const quantity     = parseInt(input ? input.value : 0, 10);
+    const input = (mobileInput && mobileInput.value) ? mobileInput : desktopInput;
+    const quantity = parseInt(input ? input.value : 0, 10);
     if (!quantity || quantity <= 0) { showToast('Enter a valid quantity', 'error'); return; }
- 
     let foundVariant = null;
     for (const p of products) {
         const v = (p.variants || []).find(v => v.id === variantId);
@@ -1509,7 +2115,7 @@ async function restockVariant(variantId, productId) {
     _lock();
     try {
         await API.restockVariant(variantId, quantity);
-        if (foundVariant) { foundVariant.stock += quantity; }
+        if (foundVariant) foundVariant.stock += quantity;
         _applyVariantStockDOM(variantId, foundVariant ? foundVariant.stock : 0, foundVariant ? foundVariant.min_stock : 0);
         showToast('Variant restocked!');
         if (input) input.value = '';
@@ -1517,7 +2123,7 @@ async function restockVariant(variantId, productId) {
     } catch (err) { showToast('Failed: ' + err.message, 'error'); }
     finally { _unlock(); }
 }
- 
+
 async function updateVariantMinStock(variantId) {
     const input = document.getElementById(`v-minstock-${variantId}`);
     const val   = parseInt(input.value);
@@ -1529,12 +2135,12 @@ async function updateVariantMinStock(variantId) {
     }
     try {
         await API.updateVariant(variantId, { min_stock: val });
-        if (foundVariant) { foundVariant.min_stock = val; }
+        if (foundVariant) foundVariant.min_stock = val;
         if (foundVariant) _applyVariantStockDOM(variantId, foundVariant.stock, val);
         showToast('Variant min stock updated!');
     } catch (err) { showToast('Failed: ' + err.message, 'error'); }
 }
- 
+
 async function updateVariantMinStockMobile(variantId) {
     const input = document.getElementById(`m-v-minstock-${variantId}`);
     const val   = parseInt(input.value);
@@ -1546,29 +2152,28 @@ async function updateVariantMinStockMobile(variantId) {
     }
     try {
         await API.updateVariant(variantId, { min_stock: val });
-        if (foundVariant) { foundVariant.min_stock = val; }
+        if (foundVariant) foundVariant.min_stock = val;
         if (foundVariant) _applyVariantStockDOM(variantId, foundVariant.stock, val);
         showToast('Variant min stock updated!');
     } catch (err) { showToast('Failed: ' + err.message, 'error'); }
 }
- 
+
 async function deleteVariant(variantId, productId) {
     if (!confirm('Delete this variant?')) return;
     try {
         await API.deleteVariant(variantId);
         showToast('Variant deleted!');
         expandedRows.add(productId);
-        loadProducts();   // full reload — variant count changes
+        loadProducts();
     } catch (err) { showToast('Failed: ' + err.message, 'error'); }
 }
- 
+
 // ===== Excel Export =====
 async function downloadExcel() {
     try {
-        showToast('Preparing Excel...', 'info');
+        showToast('Preparing Excel…', 'info');
         if (!products || products.length === 0) { showToast('No products to export', 'error'); return; }
         const wb = XLSX.utils.book_new();
- 
         const productRows = [['S.N','Product Name','Category','Barcode','Stock','Min Stock','Cost Price','Selling Price','Status','Variants Count']];
         products.forEach((p, i) => {
             productRows.push([i+1, p.name, p.category||'', p.barcode||'', p.stock, p.min_stock,
@@ -1577,7 +2182,6 @@ async function downloadExcel() {
         const ws1 = XLSX.utils.aoa_to_sheet(productRows);
         ws1['!cols'] = [{wch:5},{wch:28},{wch:15},{wch:14},{wch:8},{wch:10},{wch:12},{wch:13},{wch:8},{wch:14}];
         XLSX.utils.book_append_sheet(wb, ws1, 'Products');
- 
         const variantRows = [['S.N','Product Name','Variant Value','Variant Type','Barcode','Stock','Min Stock','Cost Price','Selling Price','Status']];
         let sn = 1;
         products.forEach(p => {
@@ -1592,7 +2196,6 @@ async function downloadExcel() {
             ws2['!cols'] = [{wch:5},{wch:28},{wch:14},{wch:12},{wch:14},{wch:8},{wch:10},{wch:12},{wch:13},{wch:8}];
             XLSX.utils.book_append_sheet(wb, ws2, 'Variants');
         }
- 
         const combinedRows = [['S.N','Product Name','Variant','Type','Category','Barcode','Stock','Min Stock','Selling Price','Status']];
         let csn = 1;
         products.forEach(p => {
@@ -1610,31 +2213,28 @@ async function downloadExcel() {
         const ws3 = XLSX.utils.aoa_to_sheet(combinedRows);
         ws3['!cols'] = [{wch:5},{wch:28},{wch:14},{wch:10},{wch:14},{wch:14},{wch:8},{wch:10},{wch:13},{wch:8}];
         XLSX.utils.book_append_sheet(wb, ws3, 'Combined');
- 
         const date = new Date().toISOString().slice(0,10).replace(/-/g,'');
         XLSX.writeFile(wb, `Stock_Report_${date}.xlsx`);
         showToast('Excel downloaded!', 'success');
-    } catch (err) {
-        showToast('Export failed: ' + err.message, 'error');
-    }
+    } catch (err) { showToast('Export failed: ' + err.message, 'error'); }
 }
- 
+
 // ===== Search =====
 function handleSearch(search, category) { loadProducts(); }
- 
+
 function mobileSearch() {
     const s = document.getElementById('mobileSearchInput');
     const c = document.getElementById('mobileCategoryFilter');
     if (s && typeof performSearch === 'function') performSearch(s.value, c.value);
 }
- 
+
 // ===== Utility =====
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
- 
+
 // ===== Google Sheets =====
 function openGoogleSheetsModal() {
     const saved = localStorage.getItem('googleSheetsConfig');
@@ -1643,11 +2243,11 @@ function openGoogleSheetsModal() {
     document.getElementById('apiKey').value  = googleSheetsConfig.apiKey  || '';
     document.getElementById('googleSheetsModal').classList.add('show');
 }
- 
+
 function closeGoogleSheetsModal() {
     document.getElementById('googleSheetsModal').classList.remove('show');
 }
- 
+
 function saveGoogleSheetsConfig() {
     const sheetId = document.getElementById('sheetId').value.trim();
     const apiKey  = document.getElementById('apiKey').value.trim();
@@ -1656,76 +2256,72 @@ function saveGoogleSheetsConfig() {
     localStorage.setItem('googleSheetsConfig', JSON.stringify(googleSheetsConfig));
     return true;
 }
- 
+
 async function exportToGoogleSheets() {
     if (!saveGoogleSheetsConfig()) return;
     try {
-        showToast('Syncing...', 'info');
+        showToast('Syncing…', 'info');
         const result = await API.syncToGoogleSheets(googleSheetsConfig.sheetId, googleSheetsConfig.apiKey);
         showToast(result.message || 'Synced!', 'success');
         closeGoogleSheetsModal();
     } catch (err) {
         const e = err.message || String(err);
-        showToast(e.includes('403') ? 'Permission denied! Enable sharing.' : 'Export failed: ' + e, 'error');
+        showToast(e.includes('403') ? 'Permission denied. Enable sharing.' : 'Export failed: ' + e, 'error');
     }
 }
- 
+
 async function importFromGoogleSheets() {
     if (!saveGoogleSheetsConfig()) return;
     try {
-        showToast('Importing...', 'info');
+        showToast('Importing…', 'info');
         const result = await API.importFromGoogleSheets(googleSheetsConfig.sheetId, googleSheetsConfig.apiKey);
         showToast(result.message || 'Imported!', 'success');
         closeGoogleSheetsModal();
         loadProducts();
     } catch (err) {
         const e = err.message || String(err);
-        showToast(e.includes('403') ? 'Permission denied! Enable sharing.' : 'Import failed: ' + e, 'error');
+        showToast(e.includes('403') ? 'Permission denied. Enable sharing.' : 'Import failed: ' + e, 'error');
     }
 }
- 
+
 // Close modals on backdrop click
 window.addEventListener('click', function(e) {
     if (e.target === document.getElementById('addVariantModal'))    closeVariantModal();
     if (e.target === document.getElementById('googleSheetsModal')) closeGoogleSheetsModal();
 });
- 
-// ===== Global Exports =====
-window.handleSearch              = handleSearch;
-window.downloadExcel             = downloadExcel;
-window.openGoogleSheetsModal     = openGoogleSheetsModal;
-window.closeGoogleSheetsModal    = closeGoogleSheetsModal;
-window.exportToGoogleSheets      = exportToGoogleSheets;
-window.importFromGoogleSheets    = importFromGoogleSheets;
-window.toggleVariants            = toggleVariants;
-window.openAddVariantModal       = openAddVariantModal;
-window.closeVariantModal         = closeVariantModal;
-window.submitAddVariant          = submitAddVariant;
-window.sellVariant               = sellVariant;
-window.restockVariant            = restockVariant;
-window.deleteVariant             = deleteVariant;
-window.updateVariantMinStock     = updateVariantMinStock;
-window.updateVariantMinStockMobile = updateVariantMinStockMobile;
-window.showStockEdit             = showStockEdit;
-window.saveStockEdit             = saveStockEdit;
-window.cancelStockEdit           = cancelStockEdit;
-window.showVariantStockEdit      = showVariantStockEdit;
-window.saveVariantStockEdit      = saveVariantStockEdit;
-window.cancelVariantStockEdit    = cancelVariantStockEdit;
-window.sellProduct               = sellProduct;
-window.restockProduct            = restockProduct;
-window.updateMinStock            = updateMinStock;
-window.deleteProduct             = deleteProduct;
-window.sellProductMobile         = sellProductMobile;
-window.restockProductMobile      = restockProductMobile;
-window.updateMinStockMobile      = updateMinStockMobile;
-window.toggleAddForm             = toggleAddForm;
-window.handleAddProduct          = handleAddProduct;
-window.mobileSearch              = mobileSearch;
-window.openGoogleSheetsModal     = openGoogleSheetsModal;
-window.closeGoogleSheetsModal    = closeGoogleSheetsModal;
- 
 
+// ===== Global Exports =====
+window.handleSearch                = handleSearch;
+window.downloadExcel               = downloadExcel;
+window.openGoogleSheetsModal       = openGoogleSheetsModal;
+window.closeGoogleSheetsModal      = closeGoogleSheetsModal;
+window.exportToGoogleSheets        = exportToGoogleSheets;
+window.importFromGoogleSheets      = importFromGoogleSheets;
+window.toggleVariants              = toggleVariants;
+window.openAddVariantModal         = openAddVariantModal;
+window.closeVariantModal           = closeVariantModal;
+window.submitAddVariant            = submitAddVariant;
+window.sellVariant                 = sellVariant;
+window.restockVariant              = restockVariant;
+window.deleteVariant               = deleteVariant;
+window.updateVariantMinStock       = updateVariantMinStock;
+window.updateVariantMinStockMobile = updateVariantMinStockMobile;
+window.showStockEdit               = showStockEdit;
+window.saveStockEdit               = saveStockEdit;
+window.cancelStockEdit             = cancelStockEdit;
+window.showVariantStockEdit        = showVariantStockEdit;
+window.saveVariantStockEdit        = saveVariantStockEdit;
+window.cancelVariantStockEdit      = cancelVariantStockEdit;
+window.sellProduct                 = sellProduct;
+window.restockProduct              = restockProduct;
+window.updateMinStock              = updateMinStock;
+window.deleteProduct               = deleteProduct;
+window.sellProductMobile           = sellProductMobile;
+window.restockProductMobile        = restockProductMobile;
+window.updateMinStockMobile        = updateMinStockMobile;
+window.toggleAddForm               = toggleAddForm;
+window.handleAddProduct            = handleAddProduct;
+window.mobileSearch                = mobileSearch;
 </script>
 {% endblock %}
 {% endblock %}

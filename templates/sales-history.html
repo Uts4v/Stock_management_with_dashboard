@@ -522,27 +522,38 @@ function showToast(message) {
 // ===== Export to Excel =====
 async function exportToExcel() {
     if (!window.confirm(`Export ${filteredTransactions.length} transactions to Excel?`)) return;
-    
+
     try {
         const response = await fetch('/api/transactions/export/excel/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ transactions: filteredTransactions })
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                transactions: filteredTransactions
+            })
         });
-        
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Sales_History_${new Date().toISOString().split('T')[0]}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        } else {
-            alert('Export failed. Please try again.');
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Export failed:', errorText);
+            alert('Export failed. Check console for details.');
+            return;
         }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Sales_History_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
     } catch (error) {
         console.error('Export error:', error);
         alert('Export failed. Please try again.');
