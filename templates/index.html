@@ -406,13 +406,14 @@ tbody tr.low-stock:hover td { background: var(--red-lt); }
 .qty-input::placeholder { color: var(--text-3); font-size: 11px; }
 
 .minstock-input {
-  width: 64px;
+    width: 55px;
+    min-height: 36px;
+    font-size: 13px;
   padding: 5px 7px;
   background: var(--bg);
   border: 1.5px solid var(--border);
   border-radius: var(--r-sm);
   font-family: var(--font);
-  font-size: 12px;
   color: var(--text-1);
   outline: none;
   text-align: center;
@@ -891,7 +892,7 @@ tbody tr.low-stock:hover td { background: var(--red-lt); }
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  padding: 10px;
+  padding: 6px;
 }
 .mobile-minstock-box > label {
   font-size: 10px;
@@ -902,7 +903,10 @@ tbody tr.low-stock:hover td { background: var(--red-lt); }
   display: block;
   margin-bottom: 6px;
 }
-.mobile-minstock-controls { display: flex; gap: 6px; }
+.mobile-minstock-controls { 
+  display: flex; gap: 6px;
+  align-items: center; 
+}
 
 /* Variant mobile */
 .card-variant-section { margin-top: 14px; border-top: 1px solid var(--violet-mid); padding-top: 14px; }
@@ -949,6 +953,72 @@ tbody tr.low-stock:hover td { background: var(--red-lt); }
    ============================================================ */
 @media (max-width: 1100px) {
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+/* MOBILE FIX: premium stacked search and cleaner spacing */
+@media (max-width: 768px) {
+
+    .mobile-search {
+        display: grid !important;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        padding: 14px;
+        margin-bottom: 16px;
+    }
+
+    /* FIX MIN STOCK SIZE */
+    .mobile-minstock-box {
+        padding: 8px !important;
+    }
+
+    .mobile-minstock-box label {
+        font-size: 10px !important;
+        margin-bottom: 4px !important;
+    }
+
+    .mobile-minstock-controls {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+
+    .mobile-minstock-controls input,
+    .mobile-minstock-box input,
+    .minstock-input {
+        width: 70px !important;
+        height: 36px !important;
+        min-height: 36px !important;
+        padding: 4px 6px !important;
+        font-size: 13px !important;
+        border-radius: 8px !important;
+        flex: 0 0 70px !important;
+    }
+
+    .mobile-minstock-controls button {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        padding: 0 !important;
+    }
+
+    .stock-edit-group {
+        width: auto !important;
+        max-width: 120px !important;
+        gap: 4px !important;
+    }
+
+    .stock-edit-input {
+        width: 60px !important;
+        height: 36px !important;
+    }
+
+    .product-card-stat .stock-edit-group,
+    .variant-card-stats .stock-edit-group {
+        margin-top: 6px !important;
+    }
+
 }
 
 @media (max-width: 860px) {

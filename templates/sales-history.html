@@ -18,13 +18,7 @@
         <i class="fas fa-filter"></i>
     </button>
 </div>
-<!-- In your navbar/header -->
-<div class="user-profile">
-    <span>👤 {{ request.user.username }}</span>
-    <a href="{% url 'logout' %}">Logout</a>
-</div>
-
-<div class="main-content">
+<div class="sales-page-shell">
     <!-- Page Header -->
     <div class="page-header">
         <h1 class="page-title">Sales History</h1>
@@ -128,6 +122,7 @@
             <h3>No Transactions Found</h3>
             <p>There are no transaction records matching your filters.</p>
         </div>
+        <div class="transactions-table-wrap">
         <table id="transactionsTable" style="display: none;">
             <thead>
                 <tr>
@@ -147,6 +142,8 @@
                 <!-- Transactions will be loaded here -->
             </tbody>
         </table>
+        </div>
+        <div id="transactionsMobileCards" class="transactions-mobile-cards"></div>
     </div>
 </div>
 
@@ -299,6 +296,7 @@ function renderTransactions() {
     const tbody = document.getElementById('transactionsTableBody');
     const recordCount = document.getElementById('recordCount');
     const deleteBtn = document.getElementById('deleteSelectedBtn');
+    const mobileCards = document.getElementById('transactionsMobileCards');
     
     spinner.style.display = 'none';
     
@@ -307,6 +305,7 @@ function renderTransactions() {
         table.style.display = 'none';
         recordCount.textContent = '0 records';
         deleteBtn.style.display = 'none';
+        if (mobileCards) mobileCards.innerHTML = '';
         return;
     }
     
@@ -317,7 +316,7 @@ function renderTransactions() {
     // Update select all checkbox
     document.getElementById('selectAll').checked = filteredTransactions.length > 0 && filteredTransactions.every(t => selectedIds.has(t.id));
     
-    tbody.innerHTML = filteredTransactions.map((t, index) => {
+    const transactionRows = filteredTransactions.map((t, index) => {
         const date = new Date(t.created_at);
         const dateStr = date.toLocaleDateString('en-US', { 
             year: 'numeric', month: 'short', day: 'numeric' 
@@ -384,7 +383,55 @@ function renderTransactions() {
             </tr>
         `;
     }).join('');
-    
+
+    tbody.innerHTML = transactionRows;
+
+    if (mobileCards) {
+        mobileCards.innerHTML = filteredTransactions.map((t, index) => {
+            const date = new Date(t.created_at);
+            const dateStr = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+            const typeClass = {'SALE':'type-sale','RESTOCK':'type-restock','ADJUSTMENT':'type-adjustment'}[t.transaction_type] || '';
+            const typeIcon = {'SALE':'fa-arrow-up-from-bracket','RESTOCK':'fa-arrow-down-to-bracket','ADJUSTMENT':'fa-sliders'}[t.transaction_type] || 'fa-exchange-alt';
+            const typeLabel = {'SALE':'Sale','RESTOCK':'Restock','ADJUSTMENT':'Adjustment'}[t.transaction_type] || t.transaction_type;
+
+            const totalValue = t.revenue !== null ? t.revenue : (t.transaction_type === 'RESTOCK' ? t.quantity * t.unit_price : '-');
+            const isSelected = selectedIds.has(t.id);
+            const valueText = typeof totalValue === 'number'
+                ? 'NPR ' + totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})
+                : totalValue;
+
+            return `
+                <div class="transaction-card ${isSelected ? 'selected-card' : ''}">
+                    <div class="transaction-card-top">
+                        <label class="transaction-check">
+                            <input type="checkbox" value="${t.id}" ${isSelected ? 'checked' : ''} onchange="toggleSelect('${t.id}')">
+                            <span>#${index + 1}</span>
+                        </label>
+                        <span class="type-badge ${typeClass}">
+                            <i class="fas ${typeIcon}"></i>${typeLabel}
+                        </span>
+                    </div>
+                    <div class="transaction-card-product">
+                        <strong>${t.product_name}</strong>
+                        ${t.variant_label ? `<span><i class="fas fa-layer-group"></i> ${t.variant_label}</span>` : ''}
+                    </div>
+                    <div class="transaction-card-grid">
+                        <div><small>Date</small><strong>${dateStr}</strong><span>${timeStr}</span></div>
+                        <div><small>Qty</small><strong>${t.quantity}</strong></div>
+                        <div><small>Unit Price</small><strong>NPR ${t.unit_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></div>
+                        <div><small>Total</small><strong class="${t.revenue !== null ? 'revenue-cell' : ''}">${valueText}</strong></div>
+                    </div>
+                    ${t.note ? `<div class="transaction-note"><small>Note</small><span>${t.note}</span></div>` : ''}
+                    <button class="mobile-delete-btn" onclick="deleteTransaction(${t.id})">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            `;
+        }).join('');
+    }
+
     updateDeleteButton();
 }
 
@@ -562,147 +609,28 @@ async function exportToExcel() {
 </script>
 
 <style>
-.type-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-.type-sale {
-    background: #d4edda;
-    color: #155724;
-}
-
-.type-restock {
-    background: #cce5ff;
-    color: #004085;
-}
-
-.type-adjustment {
-    background: #fff3cd;
-    color: #856404;
-}
-
-.datetime-cell {
-    display: flex;
-    flex-direction: column;
-}
-
-.datetime-cell .date {
-    font-weight: 500;
-}
-
-.datetime-cell .time {
-    font-size: 12px;
-    color: #666;
-}
-
-.revenue-cell {
-    color: #28a745;
-    font-weight: 600;
-}
-
-.record-count {
-    font-size: 14px;
-    color: #666;
-    font-weight: normal;
-}
-
-.header-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.filters-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    padding: 16px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    align-items: flex-end;
-}
-
-.filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.filter-group label {
-    font-size: 12px;
-    font-weight: 500;
-    color: #666;
-}
-
-.filter-group input,
-.filter-group select {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    min-width: 150px;
-}
-
-.btn-success {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 10px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-}
-
-.btn-success:hover {
-    background: #218838;
-}
-
-.btn-secondary {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-}
-
-.btn-secondary:hover {
-    background: #5a6268;
-}
-
-@media (max-width: 768px) {
-    .filters-container {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .filter-group input,
-    .filter-group select {
-        width: 100%;
-    }
-    
-    .header-actions {
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    .header-actions .btn {
-        width: 100%;
-        justify-content: center;
-    }
-}
+.user-profile,.mobile-search{display:none!important}
+.sales-page-shell{width:100%;max-width:1400px;margin:0 auto;padding:0;overflow-x:hidden}
+.sales-page-shell .page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;background:#fff;border:1px solid #e5e7eb;border-radius:22px;padding:20px;margin-bottom:18px;box-shadow:0 8px 24px rgba(15,23,42,.06)}
+.sales-page-shell .page-title{font-size:26px;font-weight:800;color:#111827;letter-spacing:-.04em;line-height:1.15}
+.sales-page-shell .header-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.sales-page-shell .btn,.sales-page-shell .btn-success,.sales-page-shell .btn-secondary,.sales-page-shell .btn-danger,.sales-page-shell .btn-danger-outline{min-height:44px;padding:10px 14px;border-radius:14px;font-size:14px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;text-decoration:none;cursor:pointer;white-space:nowrap}
+.sales-page-shell .btn{background:#f8fafc;color:#334155;border-color:#e2e8f0}.sales-page-shell .btn-success{background:#16a34a;color:#fff}.sales-page-shell .btn-secondary{background:#111827;color:#fff}.sales-page-shell .btn-danger{background:#dc2626;color:#fff}.sales-page-shell .btn-danger-outline{background:#fff;color:#dc2626;border-color:#fecaca}
+.sales-page-shell .summary-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.sales-page-shell .summary-card{background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:18px;display:flex;align-items:center;gap:14px;min-width:0;box-shadow:0 6px 18px rgba(15,23,42,.05)}
+.sales-page-shell .summary-card .icon{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.sales-page-shell .summary-card .icon.blue{background:#eff6ff;color:#2563eb}.sales-page-shell .summary-card .icon.green{background:#f0fdf4;color:#16a34a}.sales-page-shell .summary-card .icon.purple{background:#eef2ff;color:#6366f1}.sales-page-shell .summary-card .icon.orange{background:#fff7ed;color:#ea580c}
+.sales-page-shell .summary-card .info{min-width:0}.sales-page-shell .summary-card .info h3{font-size:clamp(18px,2vw,24px);color:#111827;font-weight:800;letter-spacing:-.04em;line-height:1.15;overflow-wrap:anywhere}.sales-page-shell .summary-card .info p{margin-top:3px;font-size:12px;color:#64748b;font-weight:700}
+.sales-page-shell .filters-container{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr)) auto;gap:12px;padding:16px;background:#fff;border:1px solid #e5e7eb;border-radius:20px;margin-bottom:18px;box-shadow:0 6px 18px rgba(15,23,42,.05);align-items:end}
+.sales-page-shell .filter-group{display:flex;flex-direction:column;gap:6px;min-width:0}.sales-page-shell .filter-group label{font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.04em}
+.sales-page-shell .filter-group input,.sales-page-shell .filter-group select{width:100%;min-height:44px;padding:9px 12px;border:1px solid #dbe3eb;border-radius:13px;background:#f8fafc;color:#111827;font-size:15px;outline:none}.sales-page-shell .filter-group input:focus,.sales-page-shell .filter-group select:focus{border-color:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.10);background:#fff}
+.sales-page-shell .table-container{background:#fff;border:1px solid #e5e7eb;border-radius:22px;overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,.06)}
+.sales-page-shell .table-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #e5e7eb}.sales-page-shell .table-title{font-size:15px;font-weight:800;color:#111827}.sales-page-shell .record-count{font-size:12px;color:#64748b;background:#f8fafc;border:1px solid #e5e7eb;padding:5px 10px;border-radius:999px;font-weight:800}
+.transactions-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}#transactionsTable{width:100%;min-width:980px;border-collapse:collapse}#transactionsTable th{background:#f8fafc;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:12px;text-align:left;white-space:nowrap}#transactionsTable td{padding:13px 12px;border-top:1px solid #f1f5f9;color:#334155;font-size:13px;vertical-align:middle}.selected-row td{background:#eff6ff}.checkbox-col{width:44px}.row-checkbox,#selectAll{width:18px;height:18px;accent-color:#2563eb}
+.type-badge{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800;white-space:nowrap}.type-sale{background:#dcfce7;color:#166534}.type-restock{background:#dbeafe;color:#1d4ed8}.type-adjustment{background:#fef3c7;color:#92400e}.datetime-cell{display:flex;flex-direction:column;gap:2px}.datetime-cell .date{font-weight:800;color:#111827}.datetime-cell .time{font-size:12px;color:#64748b}.revenue-cell{color:#16a34a;font-weight:800}.btn-icon,.btn-delete{width:38px;height:38px;border-radius:12px;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.transactions-mobile-cards{display:none}.loading,.empty-state{min-height:220px;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:#64748b}.spinner{width:34px;height:34px;border:4px solid #e5e7eb;border-top-color:#2563eb;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.empty-state i{font-size:42px;color:#cbd5e1}.empty-state h3{color:#111827;font-size:18px}
+@media(max-width:1000px){.sales-page-shell .summary-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.sales-page-shell .filters-container{grid-template-columns:repeat(2,minmax(0,1fr))}.sales-page-shell .filters-container .btn{grid-column:1/-1}}
+@media(max-width:768px){.sales-page-shell{padding:0;width:100%;overflow-x:hidden}.sales-page-shell .page-header{display:block;padding:18px;border-radius:20px;margin-bottom:14px}.sales-page-shell .page-title{font-size:24px;margin-bottom:14px}.sales-page-shell .header-actions{display:grid;grid-template-columns:1fr;gap:10px;width:100%}.sales-page-shell .header-actions .btn,.sales-page-shell .header-actions button,.sales-page-shell .header-actions a{width:100%;justify-content:center}.sales-page-shell .summary-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}.sales-page-shell .summary-card{padding:14px;border-radius:18px;gap:10px;align-items:flex-start;min-width:0}.sales-page-shell .summary-card .icon{width:42px;height:42px;border-radius:14px;font-size:17px}.sales-page-shell .summary-card .info h3{font-size:18px;max-width:100%}.sales-page-shell .summary-card .info p{font-size:11px;line-height:1.2}.sales-page-shell .filters-container{grid-template-columns:1fr;border-radius:20px;padding:14px;gap:10px;margin-bottom:14px}.sales-page-shell .filter-group input,.sales-page-shell .filter-group select{min-height:48px;font-size:16px}.transactions-table-wrap{display:none}.transactions-mobile-cards{display:grid;gap:12px;padding:12px 0;background:transparent}.sales-page-shell .table-container{border-radius:20px;background:transparent;border:none;box-shadow:none;overflow:visible}.sales-page-shell .table-header{background:#fff;border:1px solid #e5e7eb;border-radius:18px;margin-bottom:10px}.transaction-card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:14px;box-shadow:0 6px 18px rgba(15,23,42,.05)}.transaction-card.selected-card{border-color:#93c5fd;background:#eff6ff}.transaction-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}.transaction-check{display:inline-flex;align-items:center;gap:8px;color:#64748b;font-size:13px;font-weight:800}.transaction-check input{width:18px;height:18px;accent-color:#2563eb}.transaction-card-product{display:flex;flex-direction:column;gap:3px;margin-bottom:12px}.transaction-card-product strong{color:#111827;font-size:16px;font-weight:800}.transaction-card-product span{color:#6366f1;font-size:12px;font-weight:700}.transaction-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}.transaction-card-grid>div{background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:10px;min-width:0}.transaction-card-grid small,.transaction-note small{display:block;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;font-weight:800;margin-bottom:3px}.transaction-card-grid strong{display:block;color:#111827;font-size:14px;font-weight:800;overflow-wrap:anywhere}.transaction-card-grid span{color:#64748b;font-size:12px}.transaction-note{background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:10px;margin-bottom:12px}.transaction-note span{color:#92400e;font-size:13px;font-weight:700}.mobile-delete-btn{width:100%;min-height:42px;border-radius:14px;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;font-size:14px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:8px}}
+@media(max-width:390px){.sales-page-shell .summary-card{padding:12px;flex-direction:column}.sales-page-shell .summary-card .info h3{font-size:16px}.transaction-card-grid{grid-template-columns:1fr}}
 </style>
 {% endblock %}
